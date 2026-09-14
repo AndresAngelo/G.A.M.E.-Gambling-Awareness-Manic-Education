@@ -40,7 +40,6 @@ export function GameSession({ minutes, onBack, onAlternative, children }: Props)
   if (phase === 'confirm') {
     phaseNode = (
       <section className="session-confirm" aria-labelledby="session-confirm-title">
-        <p className="eyebrow">Before this simulation</p>
         <h1 id="session-confirm-title">Start a bounded learning session?</h1>
         <div className="notice warning">This game uses fictional credits and recognizable gambling mechanics. It may trigger urges. Playing earns no mastery and the timer creates a firm stopping point.</div>
         <label className="check-row">
@@ -54,7 +53,6 @@ export function GameSession({ minutes, onBack, onAlternative, children }: Props)
   } else if (phase === 'complete') {
     phaseNode = (
       <section className="session-complete" aria-labelledby="session-end-title">
-        <p className="eyebrow">Natural stopping point</p>
         <h1 id="session-end-title">This casino-learning session is complete</h1>
         <p>The games are paused. Your report, settings, and calming alternatives remain available.</p>
         <button className="calm-action" onClick={onAlternative}>Choose a healthier alternative</button>

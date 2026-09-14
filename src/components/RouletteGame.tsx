@@ -5,6 +5,7 @@ import { systemRandom } from '../domain/rng'
 import type { AppEvent } from '../domain/types'
 import { useMotionPref } from '../motion/MotionPreferenceContext'
 import { fadeRise, fastFade, resolveTransition } from '../motion/variants'
+import { BackIcon } from './icons'
 import { RouletteWheel } from './RouletteWheel'
 
 interface Props {
@@ -70,7 +71,8 @@ export function RouletteGame({ balance, onWallet, onEvent, onIntervention, onBac
 
   return <section className="game-view" aria-labelledby="roulette-title">
     <GameTop onBack={onBack} mode={mode} setMode={setMode} />
-    <p className="eyebrow">European single-zero roulette</p><h1 id="roulette-title">Roulette</h1>
+    <h1 id="roulette-title">Roulette</h1>
+    <p className="lead">European single-zero wheel.</p>
     <div className="game-felt game-felt-roulette">
       <RouletteWheel spinToken={spinToken} target={pendingResult} reduced={reduced} onSettled={handleSettled} />
     </div>
@@ -91,7 +93,7 @@ export function RouletteGame({ balance, onWallet, onEvent, onIntervention, onBac
 }
 
 function GameTop({ onBack, mode, setMode }: { onBack(): void; mode: 'free' | 'scenario'; setMode(value: 'free' | 'scenario'): void }) {
-  return <div className="game-top"><button className="secondary" onClick={onBack}>← Back</button><label>Mode<select value={mode} onChange={(event) => setMode(event.target.value as 'free' | 'scenario')}><option value="free">Random free play</option><option value="scenario">Scripted lesson</option></select></label></div>
+  return <div className="game-top"><button className="secondary icon-btn" onClick={onBack}><BackIcon />Back</button><label>Mode<select value={mode} onChange={(event) => setMode(event.target.value as 'free' | 'scenario')}><option value="free">Random free play</option><option value="scenario">Scripted lesson</option></select></label></div>
 }
 
 function StakePicker({ value, onChange }: { value: number; onChange(value: number): void }) {

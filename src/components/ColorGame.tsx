@@ -5,6 +5,7 @@ import { systemRandom } from '../domain/rng'
 import type { AppEvent } from '../domain/types'
 import { useMotionPref } from '../motion/MotionPreferenceContext'
 import { fadeRise, fastFade, resolveTransition } from '../motion/variants'
+import { BackIcon } from './icons'
 import { ColorDice } from './ColorDice'
 
 interface Props {
@@ -67,8 +68,9 @@ export function ColorGame({ balance, onWallet, onEvent, onIntervention, onBack }
   }
 
   return <section className="game-view" aria-labelledby="color-title">
-    <div className="game-top"><button className="secondary" onClick={onBack}>← Back</button><label>Mode<select value={mode} onChange={(event) => setMode(event.target.value as 'free' | 'scenario')}><option value="free">Random free play</option><option value="scenario">Scripted lesson</option></select></label></div>
-    <p className="eyebrow">Perya-inspired probability lesson</p><h1 id="color-title">Color Game</h1>
+    <div className="game-top"><button className="secondary icon-btn" onClick={onBack}><BackIcon />Back</button><label>Mode<select value={mode} onChange={(event) => setMode(event.target.value as 'free' | 'scenario')}><option value="free">Random free play</option><option value="scenario">Scripted lesson</option></select></label></div>
+    <h1 id="color-title">Color Game</h1>
+    <p className="lead">Perya-inspired probability lesson.</p>
     {mode === 'scenario' && <div className="scenario-banner">Guided scenario: three red faces are scripted to demonstrate how a rare result can create a “hot color” belief.</div>}
     <div className="game-felt game-felt-color">
       <ColorDice spinToken={spinToken} targets={pendingTargets} reduced={reduced} onSettled={handleSettled} />

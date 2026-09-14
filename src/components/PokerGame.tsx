@@ -20,6 +20,7 @@ import {
 import { seededRandom, systemRandom, type RandomSource } from '../domain/rng'
 import type { AppEvent } from '../domain/types'
 import { FlipCard } from './FlipCard'
+import { BackIcon } from './icons'
 import { useMotionPref } from '../motion/MotionPreferenceContext'
 import { fadeRise, fastFade, resolveTransition } from '../motion/variants'
 
@@ -136,8 +137,8 @@ export function PokerGame({ balance, onWallet, onEvent, onIntervention, onBack }
   return (
     <section className="game-view" aria-labelledby="poker-title">
       <div className="game-top">
-        <button className="secondary" onClick={onBack}>
-          ← Back
+        <button className="secondary icon-btn" onClick={onBack}>
+          <BackIcon />Back
         </button>
         <label>
           Mode
@@ -148,8 +149,8 @@ export function PokerGame({ balance, onWallet, onEvent, onIntervention, onBack }
         </label>
       </div>
 
-      <p className="eyebrow">Limit Texas Hold’em • fixed-limit • you versus two fair bots</p>
       <h1 id="poker-title">Poker</h1>
+      <p className="lead">Limit Texas Hold'em, fixed-limit, you versus two fair bots.</p>
 
       {scriptNote && <div className="scenario-banner">{scriptNote}</div>}
 

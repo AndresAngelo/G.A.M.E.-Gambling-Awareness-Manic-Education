@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { motion } from 'motion/react'
 import { FlipCard } from './FlipCard'
+import { BackIcon } from './icons'
 import { useMotionPref } from '../motion/MotionPreferenceContext'
 import { fadeRise, fastFade, resolveTransition } from '../motion/variants'
 import {
@@ -211,14 +212,14 @@ export function TongitsGame({ balance, onWallet, onEvent, onIntervention, onBack
 
   return <section className="game-view" aria-labelledby="tongits-title">
     <div className="game-top">
-      <button className="secondary" onClick={onBack}>← Back</button>
+      <button className="secondary icon-btn" onClick={onBack}><BackIcon />Back</button>
       <label>Mode<select value={mode} onChange={(event) => setMode(event.target.value as 'free' | 'scenario')}>
         <option value="free">Random free play</option>
         <option value="scenario">Scripted lesson</option>
       </select></label>
     </div>
-    <p className="eyebrow">Filipino three-player rummy • fair non-cheating bots</p>
     <h1 id="tongits-title">Tong-its</h1>
+    <p className="lead">Filipino three-player rummy, fair non-cheating bots.</p>
     {mode === 'scenario' && <div className="scenario-banner">Guided scenario: a fixed deal is scripted so you repeatedly come “one card away”, illustrating the near-miss pull.</div>}
 
     <div className="tongits-board" aria-live="polite">

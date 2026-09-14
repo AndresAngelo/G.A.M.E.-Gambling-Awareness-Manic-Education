@@ -14,6 +14,7 @@ import {
 import { seededRandom, systemRandom } from '../domain/rng'
 import type { AppEvent } from '../domain/types'
 import { FlipCard } from './FlipCard'
+import { BackIcon } from './icons'
 import { useMotionPref } from '../motion/MotionPreferenceContext'
 import { fadeRise, fastFade, resolveTransition } from '../motion/variants'
 
@@ -152,7 +153,7 @@ export function BlackjackGame({ balance, onWallet, onEvent, onIntervention, onBa
   return (
     <section className="game-view blackjack" aria-labelledby="blackjack-title">
       <div className="game-top">
-        <button className="secondary" onClick={onBack}>← Back</button>
+        <button className="secondary icon-btn" onClick={onBack}><BackIcon />Back</button>
         <label>
           Mode
           <select
@@ -169,8 +170,8 @@ export function BlackjackGame({ balance, onWallet, onEvent, onIntervention, onBa
         </label>
       </div>
 
-      <p className="eyebrow">Six-deck blackjack, dealer stands on soft 17</p>
       <h1 id="blackjack-title">Blackjack</h1>
+      <p className="lead">Six-deck shoe, dealer stands on soft 17.</p>
 
       {mode === 'scenario' && (
         <div className="scenario-banner">

@@ -4,9 +4,11 @@ import { lessons } from '../domain/content'
 import { nextInterventionPhase, type InterventionPhase } from '../domain/interventions'
 import { useMotionPref } from '../motion/MotionPreferenceContext'
 import { fadeRise, fastFade, resolveTransition } from '../motion/variants'
+import { CalmIcon } from './icons'
 
 const PANEL_OFFSET_PX = 20
 const PANEL_SCALE = 0.96
+const PHASE_ORDER: InterventionPhase[] = ['zoomout', 'explanation', 'reflection', 'alternative', 'quiz', 'complete']
 
 interface Props {
   lessonId: string
@@ -65,7 +67,9 @@ export function InterventionModal({ lessonId, onComplete, onAlternative, onClose
         exit={{ opacity: 0, y: PANEL_OFFSET_PX, scale: PANEL_SCALE }}
         transition={outerTransition}
       >
-        <p className="eyebrow">Perspective shift • {phase}</p>
+        <div className="intervention-phase" aria-label={`Step ${PHASE_ORDER.indexOf(phase) + 1} of ${PHASE_ORDER.length}`}>
+          {PHASE_ORDER.map((step, index) => <span key={step} className={index <= PHASE_ORDER.indexOf(phase) ? 'done' : ''} />)}
+        </div>
         <h2 id="intervention-title" ref={titleRef} tabIndex={-1}>{phaseTitles[phase]}</h2>
         <AnimatePresence mode="wait">
           <motion.div
@@ -76,7 +80,7 @@ export function InterventionModal({ lessonId, onComplete, onAlternative, onClose
             exit="exit"
             transition={innerTransition}
           >
-            {phase === 'zoomout' && <><div className="observer" aria-hidden="true">◎</div><p>{lesson.trigger}</p><p>Imagine watching this choice from across the room. Take one slow breath before continuing.</p></>}
+            {phase === 'zoomout' && <><div className="observer" aria-hidden="true"><CalmIcon /></div><p>{lesson.trigger}</p><p>Imagine watching this choice from across the room. Take one slow breath before continuing.</p></>}
             {phase === 'explanation' && <><h3>{lesson.title}</h3><p>{lesson.explanation}</p><span className="tag">Provisional educational content</span></>}
             {phase === 'reflection' && <><label htmlFor="reflection">{lesson.question}</label><textarea id="reflection" value={reflection} onChange={(event) => setReflection(event.target.value)} maxLength={500} /><label className="check-row"><input type="checkbox" checked={share} onChange={(event) => setShare(event.target.checked)} /> Include this reflection in my counselor report</label></>}
             {phase === 'alternative' && <><p>{lesson.healthierAction}</p><button className="calm-action" onClick={onAlternative}>Open calming alternatives</button></>}
