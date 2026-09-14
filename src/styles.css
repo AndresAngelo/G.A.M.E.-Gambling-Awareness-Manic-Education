@@ -269,7 +269,7 @@ button { min-height: 44px; }
   place-items: center;
   padding: 16px;
   color: var(--color-text);
-  background: radial-gradient(ellipse 780px 620px at 18% -8%, var(--color-bg-grad-1) 0%, var(--color-bg-grad-2) 50%, var(--color-bg-grad-3) 82%);
+  background: radial-gradient(ellipse 120% 90% at 50% 30%, var(--color-bg-grad-1) 0%, var(--color-bg-grad-2) 45%, var(--color-bg-grad-3) 75%);
 }
 
 .phone-frame {
@@ -301,10 +301,10 @@ button { min-height: 44px; }
      on very tall landscape viewports (e.g. 1024x1366, 1440x900). */
   .app-shell { padding: 12px; align-items: center; }
   .phone-frame {
-    width: min(100%, 1024px);
+    width: min(100%, 1200px);
     min-height: 0;
     /* Cap the frame height on tall viewports; fill available height on short ones. */
-    height: min(calc(100vh - 24px), 760px);
+    height: min(calc(100vh - 24px), 820px);
     display: grid;
     grid-template-columns: minmax(150px, 200px) 1fr;
     grid-template-rows: auto auto 1fr;
@@ -644,10 +644,14 @@ select { min-height: 44px; padding: 8px 32px 8px 10px; border: 1px solid var(--c
 .poker-card.black { color: #141626; }
 .poker-card.facedown { color: #fff; background: repeating-linear-gradient(45deg, #2a3471 0 5px, #43529e 5px 10px); }
 .poker-card.placeholder { min-width: 100px; color: #cbd1ec; background: #12263c; }
-.poker-seats { display: grid; gap: 7px; margin: 10px 0 0; padding: 0; list-style: none; }
-.poker-seat { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 5px; padding: 9px; border: 1px solid transparent; border-radius: 12px; background: #071e1a99; }
-.poker-seat[aria-current="true"] { border-color: #f9d65c; }
-.poker-seat.winner { background: #645020; }
+/* Rows within the felt table, not nested boxes on top of it: a left accent
+   border + hairline divider carry state instead of a separate background
+   rectangle per seat. */
+.poker-seats { display: grid; gap: 0; margin: 10px 0 0; padding: 0; list-style: none; }
+.poker-seat { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 5px; padding: 10px 6px; border: 0; border-top: 1px solid #ffffff26; border-left: 3px solid transparent; background: transparent; }
+.poker-seat:first-child { border-top: 0; }
+.poker-seat[aria-current="true"] { border-left-color: #f9d65c; background: #ffffff0f; }
+.poker-seat.winner { border-left-color: #75dfd0; background: #75dfd01f; }
 .poker-seat.folded { opacity: .6; }
 .poker-seat small { grid-column: 1 / -1; }
 .poker-outcome { margin: 12px 0 0; color: #fff5b4; font-weight: 900; text-align: center; }
