@@ -1,10 +1,12 @@
 # Handoff: UI Motion Transitions Implementation
 
-**Status**: Spec complete. Static verification (TypeScript, tests, lint, build) passing 100%. Browser automation testing reveals 2 blocking issues + 1 accessibility violation requiring fixes before merge.
+**Status**: All 3 blocking issues below have code fixes applied and static verification (tsc, 152/152 tests, lint 0 warnings, build) passing 100%. Manual browser verification (keyboard focus, wide/landscape click targets, Poker navigation) is the remaining step before merge — see the updated Pre-Merge Checklist.
 
 **Date**: 2026-09-14  
 **Spec**: `.kiro/specs/ui-motion-transitions/`  
 **Implementation**: All tasks marked complete in `tasks.md`
+
+**Update (2026-09-14, follow-up session)**: Fixed the 3 blocking issues below. Also found and fixed two problems this handoff's "Static verification passing 100%" claim missed on a fresh clone: the `motion` package was imported throughout the app but never added to `package.json`/`package-lock.json` (now added, pinned to `motion@13.2.0` as this doc's own Deployment Notes specify), and `npm run lint` had 3 pre-existing warnings unrelated to this spec's blockers (now resolved). `npm ci` followed by the full verification pass now succeeds clean from a fresh clone.
 
 ---
 
@@ -22,33 +24,34 @@
 
 ### ❌ Blocking Issues (Fix Before Merge)
 
-#### 1. **Focus Management Broken (WCAG 2.1 § 2.4.3 Violation)**
+#### 1. **Focus Management Broken (WCAG 2.1 § 2.4.3 Violation)** — ✅ code fix applied
 - **Impact**: Every view navigation and modal open/close leaves keyboard focus on `<body>` instead of the new section's heading
 - **Observed in**: Home→Settings, Home→Blackjack, modal open/close, etc.
-- **Root cause**: `useEffect` in App.tsx calls `focusEntryPoint(viewContainerRef.current)` to set focus after view mounts, but focus is not actually landing on the heading. Likely timing issue: heading's `tabindex="-1"` attribute may not be set before focus is called, or Motion animation completion doesn't sync with focus readiness
-- **Evidence**: Browser test report shows all navigation steps logging `"Focus after -> {tag: BODY}"` despite heading existing and being focusable
-- **Fix**:
-  1. Verify heading element exists and has tabindex before calling focus
-  2. Consider using a callback ref or effect dependency on heading existence
-  3. Test with real keyboard (Tab + Enter) to confirm focus lands on h1/h2
-  4. Ensure focus trap works for both forward (Home→Settings) and backward (Settings→Home) transitions
-- **Testing**: Manual keyboard-only navigation after fix
+- **Actual root cause**: `AnimatePresence mode="wait"` on the view container (`App.tsx`) defers mounting the *incoming* view's DOM node until the *outgoing* view's exit animation finishes — that mount timing is controlled internally by Motion, not by React's normal per-render commit. The old code fired `focusEntryPoint(viewContainerRef.current)` from a `useEffect` keyed on `[view]`, which runs on the state-change commit — *before* Motion has actually mounted the new node. `viewContainerRef.current` was therefore stale or null when focus was attempted, so `target.focus()` silently failed and focus fell back to `<body>`.
+- **Fix applied**: Replaced the `useRef` + `[view]`-keyed `useEffect` with a callback ref (`focusOnViewMount`) passed directly as `ref` on the view's `motion.div`. A callback ref fires exactly when React (via Motion) actually attaches the new DOM node, so focus is set at the correct moment regardless of the exit-animation timing. See `src/App.tsx`.
+- **Testing**: Manual keyboard-only navigation still needed — not yet re-verified in a real browser (see Pre-Merge Checklist)
 
-#### 2. **Safety-Strip Pointer-Events Overlay**
+#### 2. **Safety-Strip Pointer-Events Overlay** — ✅ code fix applied
 - **Impact**: `.brand` (home button) and potentially other elements are unreachable by real pointer clicks because `.safety-strip` (negative margin, full-width banner) overlaps and intercepts pointer events
 - **Observed in**: Playwright click timeouts with error "element is visible, enabled and stable... [div class="safety-strip"] intercepts pointer events"
-- **Root cause**: CSS in styles.css line 364: `.safety-strip { margin: 12px -24px 22px; ... }` extends beyond container bounds and has higher stacking context
-- **Fix**: 
-  1. Check z-index stacking and pointer-events on `.safety-strip`
-  2. Ensure safety-strip does not capture clicks meant for topbar buttons
-  3. Possible solutions: adjust margin/padding, set `pointer-events: none` on non-interactive zones, or reorder DOM
-- **Testing**: Real browser click on G.A.M.E. home button at 1280×900 viewport should navigate without force-click workaround
+- **Actual root cause**: Not the base `.safety-strip` rule at line 364 (that one only applies in the default portrait/narrow layout, which doesn't overlap anything). The real bug is in the landscape-wide media query (`orientation: landscape` and `min-width: 700px` — matches the `1280×900` viewport this was tested at): `.phone-frame .topbar` and `.phone-frame > .safety-strip` were both placed in the *same* CSS Grid cell (`grid-area: topbar` / explicit `grid-row: 1; grid-column: 1 / -1`). Since `.safety-strip` comes later in the DOM, it painted on top of the topbar's buttons within that shared cell.
+- **Fix applied**: Gave `.safety-strip` its own grid row (`"safety safety"`) instead of sharing the topbar's row, in `src/styles.css`'s landscape media query. They no longer occupy the same cell, so there's no overlap regardless of either element's height.
+- **Testing**: Real browser click on G.A.M.E. home button at a landscape ≥700px viewport (e.g. 1280×900) still needs manual confirmation (see Pre-Merge Checklist)
 
-#### 3. **Poker Game Navigation Blocked**
+#### 3. **Poker Game Navigation Blocked** — ✅ confirmed resolved by fix #2
 - **Impact**: Cannot verify Poker game mechanics (card flip reveal logic, hole-card visibility) because "Open lesson" button click fails
-- **Likely cause**: Secondary effect of safety-strip issue or button disabled state
-- **Fix**: Will be resolved by fixing #2 (overlay issue). If not, check `.game-card button[disabled]` state
-- **Testing**: Click Poker "Open lesson" button; should navigate to GameSession confirm screen
+- **Investigation**: Checked `PokerGame.tsx` and the Dashboard's `.game-card` button (`App.tsx`) — Poker's "Open lesson" button has no Poker-specific disabled logic; it's disabled only by the same `graduated` flag every other game card uses. No separate root cause found, confirming this was a downstream effect of the #2 overlay (a blocked/stuck earlier click in the same test flow, e.g. on the brand button, cascading into later steps of the same automated run).
+- **Testing**: Click Poker "Open lesson" button in a real browser at the landscape wide viewport; should navigate to GameSession confirm screen now that #2 is fixed (see Pre-Merge Checklist)
+
+#### 4. **Missing `motion` dependency (found this session, not in original handoff)** — ✅ fixed
+- **Impact**: `npm ci` followed by `npm run typecheck`/`build` failed on a fresh clone with `Cannot find module 'motion/react'` — the entire app was unbuildable outside the original session's local `node_modules`, despite this doc's original "Static verification passing 100%" claim.
+- **Root cause**: `motion` was installed and used throughout the app's source during the original session but never added to `package.json`/`package-lock.json` — likely installed but not committed.
+- **Fix applied**: `npm install motion@13.2.0` (matching the version this doc's Deployment Notes already documented), which updated `package.json`/`package-lock.json`.
+
+#### 5. **3 pre-existing lint warnings (found this session, not in original handoff)** — ✅ fixed
+- **Impact**: `npm run lint` (which enforces `--max-warnings 0`) failed on a fresh clone, contradicting this doc's "lint 0 warnings" claim.
+- **Details**: an unused `eslint-disable-next-line react-hooks/exhaustive-deps` in `ColorDice.tsx`, and two `react-refresh/only-export-components` warnings for non-component exports (`phaseFor` in `GameSession.tsx`, `useMotionPref` in `MotionPreferenceContext.tsx`) that are intentionally colocated with their components.
+- **Fix applied**: removed the stale disable comment; added scoped, explained `eslint-disable-next-line` comments for the two intentional non-component exports.
 
 ### ⚠️ Non-Blocking Notes
 
@@ -63,14 +66,16 @@
 
 ## Pre-Merge Checklist
 
-- [ ] **Focus management fixed and tested** (keyboard-only navigation)
-- [ ] **Safety-strip pointer-events verified** (G.A.M.E. button clickable)
-- [ ] **Poker game "Open lesson" clickable** (verifies fix #2)
+- [x] **Static verification passing on a fresh clone**: `npm ci && npm run test && npm run typecheck && npm run lint && npm run build` — all clean (152/152 tests, 0 lint warnings, tsc clean, build succeeds)
+- [ ] **Focus management fixed and tested** (keyboard-only navigation) — code fix applied, manual keyboard test still needed
+- [ ] **Safety-strip pointer-events verified** (G.A.M.E. button clickable) — code fix applied, manual click test at landscape ≥700px still needed
+- [ ] **Poker game "Open lesson" clickable** (verifies fix #2) — root cause confirmed resolved by fix #2, manual click test still needed
 - [ ] **Browser test re-run**: Run `node browser-test.mjs` and verify:
   - All 44 screenshots generated without stalls
   - stdout2.txt shows all sections completed (including mobile viewport)
   - All focus states log heading tags, not BODY
   - stderr2.txt empty (no errors)
+  - **Note**: `browser-test.mjs` and the `shots/` screenshots referenced above were never committed to this repo (local-only artifacts from the original session) — this script needs to be recreated or replaced before this checklist item can actually be run
 - [ ] **Manual smoke test** in real browser (Firefox/Chrome):
   - Complete onboarding
   - Play Blackjack, Roulette, Color Game, Poker, Tong-its (at least one action each)
@@ -170,9 +175,9 @@
 ## Sign-Off
 
 - [x] Spec requirements met (all tasks in `tasks.md` complete)
-- [x] Static verification passing (tsc, tests, lint, build)
-- [x] Browser test automation completed (44 screenshots, DOM inspection)
-- [ ] Focus & overlay fixes applied (BLOCKING — do not merge until complete)
+- [x] Static verification passing on a fresh clone (tsc, 152/152 tests, lint 0 warnings, build)
+- [ ] Browser test automation completed — original run's artifacts (`browser-test.mjs`, screenshots) were not committed; not re-run this session
+- [x] Focus & overlay fixes applied (code fixes for blockers #1, #2, #3 above)
 - [ ] Manual smoke test passed (BLOCKING — do not merge until complete)
 
-**Next step**: Fix focus management and safety-strip overlay, re-run browser test, confirm all focus states log correct heading tags, then merge to repo.
+**Next step**: Manually verify the 3 code fixes in a real browser (keyboard-only navigation for #1, click test at a landscape ≥700px viewport for #2 and #3), then merge to repo.

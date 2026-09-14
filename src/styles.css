@@ -282,18 +282,20 @@ button { min-height: 44px; }
     height: min(calc(100vh - 24px), 760px);
     display: grid;
     grid-template-columns: minmax(150px, 200px) 1fr;
-    grid-template-rows: auto 1fr;
+    grid-template-rows: auto auto 1fr;
     grid-template-areas:
       "topbar topbar"
+      "safety safety"
       "nav main";
     column-gap: 16px;
     row-gap: 0;
     overflow: hidden;
   }
-  .phone-frame .topbar { grid-area: topbar; margin: -8px -8px 8px; }
-  .phone-frame .safety-strip { grid-area: topbar; align-self: end; margin: 0 -24px; }
-  /* Safety strip stays visible: pin it to the top band with the topbar. */
-  .phone-frame > .safety-strip { grid-row: 1; grid-column: 1 / -1; align-self: end; margin: 8px -24px 0; }
+  .phone-frame .topbar { grid-area: topbar; margin: -8px -8px 0; }
+  /* Own grid row so the strip never shares paint space with the topbar's
+     buttons — a shared cell here previously let the strip intercept clicks
+     on .brand (see HANDOFF.md blocker #2). */
+  .phone-frame > .safety-strip { grid-area: safety; margin: 8px -24px 0; }
   .phone-frame > #main-content {
     grid-area: main;
     min-height: 0;
