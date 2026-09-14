@@ -1,4 +1,6 @@
 import { useMemo, useState } from 'react'
+import { FlipCard } from './FlipCard'
+import { useMotionPref } from '../motion/MotionPreferenceContext'
 import {
   botDecideDiscard,
   botDecideDraw,
@@ -51,6 +53,7 @@ export function TongitsGame({ balance, onWallet, onEvent, onIntervention, onBack
   const [lessonReady, setLessonReady] = useState(false)
   const [staked, setStaked] = useState(false)
 
+  const { reduced } = useMotionPref()
   const you = state.boards[0]
   const suggestedMelds = useMemo(() => findBestMelds(you.hand), [you.hand])
   const yourDeadwood = useMemo(() => deadwoodValue(you.hand, you.melds.length ? you.melds : suggestedMelds), [you.hand, you.melds, suggestedMelds])
@@ -236,7 +239,9 @@ export function TongitsGame({ balance, onWallet, onEvent, onIntervention, onBack
           className={`tongits-card ${selected.has(cardId(card)) ? 'selected' : ''}`}
           aria-pressed={selected.has(cardId(card))}
           onClick={() => toggle(cardId(card))}
-        >{cardId(card)}</button>
+        >
+          <FlipCard frontLabel={cardId(card)} revealed reduced={reduced} />
+        </button>
       ))}
     </div>
 

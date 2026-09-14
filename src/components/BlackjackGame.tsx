@@ -12,6 +12,8 @@ import {
 } from '../domain/games/blackjack'
 import { seededRandom, systemRandom } from '../domain/rng'
 import type { AppEvent } from '../domain/types'
+import { FlipCard } from './FlipCard'
+import { useMotionPref } from '../motion/MotionPreferenceContext'
 
 interface Props {
   balance: number
@@ -50,6 +52,7 @@ const outcomeText: Record<RoundOutcome, string> = {
 }
 
 export function BlackjackGame({ balance, onWallet, onEvent, onIntervention, onBack }: Props) {
+  const { reduced } = useMotionPref()
   const [mode, setMode] = useState<Mode>('free')
   const [stake, setStake] = useState(10)
   const [round, setRound] = useState<RoundState | null>(null)
@@ -171,7 +174,11 @@ export function BlackjackGame({ balance, onWallet, onEvent, onIntervention, onBa
             {round
               ? round.dealer.map((card, position) => (
                   <li className="blackjack-card" key={`dealer-${position}-${cardLabel(card)}`}>
-                    {dealerReveal || position === 0 ? cardLabel(card) : '🂠'}
+                    <FlipCard
+                      frontLabel={cardLabel(card)}
+                      revealed={dealerReveal || position === 0}
+                      reduced={reduced}
+                    />
                   </li>
                 ))
               : <li className="blackjack-card blackjack-card-empty">—</li>}
@@ -185,7 +192,7 @@ export function BlackjackGame({ balance, onWallet, onEvent, onIntervention, onBa
             {round
               ? round.player.map((card, position) => (
                   <li className="blackjack-card" key={`player-${position}-${cardLabel(card)}`}>
-                    {cardLabel(card)}
+                    <FlipCard frontLabel={cardLabel(card)} revealed={true} reduced={reduced} />
                   </li>
                 ))
               : <li className="blackjack-card blackjack-card-empty">—</li>}

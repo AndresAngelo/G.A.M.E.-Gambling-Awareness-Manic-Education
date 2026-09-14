@@ -1,6 +1,6 @@
 # G.A.M.E. — Gambling Awareness Manic Education
 
-G.A.M.E. is a browser-based, **no-real-money** educational prototype designed to help people notice gambling-related design patterns and practice safer next steps. It is not a gambling product, treatment program, crisis service, diagnosis, or clinical record.
+  G.A.M.E. is a browser-based, **no-real-money** educational prototype designed to help people notice gambling-related design patterns and practice safer next steps. It is not a gambling product, treatment program, crisis service, diagnosis, or clinical record.
 
 The application uses fictional credits and guided simulations to introduce concepts such as rapid play, loss chasing, salient wins, and payment friction. Progress is earned through reflections, learning checks, and calming alternatives—not bets or wins.
 
@@ -22,6 +22,7 @@ The application uses fictional credits and guided simulations to introduce conce
 - Vitest, Testing Library, and jsdom
 - ESLint
 - Browser `localStorage` for local-only persistence
+- Motion (framer-motion re-export) for animation and motion preferences (respects `prefers-reduced-motion`)
 
 ## Getting started
 
@@ -65,13 +66,15 @@ src/
   components/       User-facing screens, simulations, interventions, report, and controls
   domain/           State, storage, educational content, reporting, RNG, and game rules
   domain/games/     Pure game-rule modules and their tests
+  motion/           Motion foundation: timing tokens, animate-on-demand compress function, useMotionPreference hook, and Motion variants for view/element transitions
   test/             Test setup
-  App.tsx           Application shell and navigation
+  App.tsx           Application shell and navigation (with motion-enabled view transitions and focus management)
   useAppState.ts    Reducer-backed local state hook
-  styles.css        Global styles and theme tokens
+  styles.css        Global styles, theme tokens, and motion-aware CSS (card flips, wheel, dice, modals)
 docs/
   theme-contrast.md Light-theme WCAG contrast measurements and scope notes
 .kiro/
+  specs/            Specification files and task tracking
   agents/           Workspace custom-agent configurations
   prompts/          Workspace prompt configurations
 ```
@@ -88,6 +91,18 @@ docs/
 ## Development notes
 
 The app separates UI components from the domain layer so game rules, intervention detection, state transitions, local persistence, and report generation can be tested independently. The repository includes tests for the application flow, theme tokens, domain logic, interventions, reports, storage, and each simulation rule module.
+
+### Motion and Animation
+
+View transitions, card flips, wheel spins, and dice tumbles are implemented with Motion (framer-motion). All animations respect the **Reduced motion** setting (Settings > Reduced motion), which toggles between full and shortened animation durations via a React context hook (`useMotionPreference`). The implementation uses CSS-based transforms (rotateY for cards, rotate for wheels, step-based sprite animation for dice) for GPU acceleration and performance. Animations are paired with reveal-on-settle patterns to gate game outcomes until visual motion is complete.
+
+### Focus Management & Accessibility
+
+View navigation moves keyboard focus to the newly mounted view's heading (h1/h2) via a display-focus-only pattern (`tabindex="-1"` + programmatic focus). The intervention modal and session-confirm dialogs also manage focus on open/close. All keyboard interactions are supported: Tab through interactive elements, Enter to select, Escape or "Leave lesson" button to dismiss modals. Announcements (roulette result, color game roll outcome) use `aria-live="polite"` to alert screen-reader users after animations settle.
+
+### Known Issues
+
+See [HANDOFF.md](HANDOFF.md) for current blocking issues and pre-merge checklist before deploying a new version.
 
 ## License
 
