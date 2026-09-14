@@ -1,10 +1,14 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { AnimatePresence, motion } from 'motion/react'
 import { Alternatives } from './components/Alternatives'
 import { BlackjackGame } from './components/BlackjackGame'
 import { ColorGame } from './components/ColorGame'
 import { CounselorReport } from './components/CounselorReport'
 import { GameSession } from './components/GameSession'
 import { InterventionModal } from './components/InterventionModal'
+import { MotionPreferenceProvider, useMotionPref } from './motion/MotionPreferenceContext'
+import { fastFade, viewTransition } from './motion/variants'
+import type { NavigationDirection } from './motion/types'
 import { Onboarding } from './components/Onboarding'
 import { PokerGame } from './components/PokerGame'
 import { Progress } from './components/Progress'
@@ -18,12 +22,65 @@ import { useAppState } from './useAppState'
 
 type View = 'home' | 'wallet' | 'settings' | 'alternatives' | 'progress' | 'report' | GameId
 
+/**
+ * Resolves the navigation direction purely from the destination view (Requirements 4.1-4.3):
+ * 'home' is treated as "returning" (backward), every other destination as "going deeper"
+ * (forward). No previous-view tracking — this is a pure function of `nextView` alone.
+ */
+function directionFor(nextView: View): NavigationDirection {
+  return nextView === 'home' ? 'backward' : 'forward'
+}
+
+/**
+ * Moves focus to the most meaningful entry point of newly mounted content
+ * (Requirements 10.6, 10.7): the container's first heading if present,
+ * otherwise its first natively focusable element, otherwise the container
+ * itself. Headings are not natively focusable, so a temporary `tabindex="-1"`
+ * is applied (display-focus-only pattern — does not add the heading to the
+ * normal tab order).
+ */
+function focusEntryPoint(container: HTMLElement | null) {
+  if (!container) return
+  const heading = container.querySelector<HTMLElement>('h1, h2')
+  const target = heading ?? container.querySelector<HTMLElement>('button, a[href], input, textarea, select, [tabindex]') ?? container
+  if (!target.hasAttribute('tabindex')) target.setAttribute('tabindex', '-1')
+  target.focus()
+}
+
 export function App() {
   const { state, dispatch } = useAppState()
   const [view, setView] = useState<View>('home')
   const [activeLesson, setActiveLesson] = useState<string | null>(null)
 
-  if (!state.onboarded) return <Onboarding onComplete={() => dispatch({ type: 'complete_onboarding' })} />
+  if (!state.onboarded) return <MotionPreferenceProvider settingsMotion={state.settings.motion}><Onboarding onComplete={() => dispatch({ type: 'complete_onboarding' })} /></MotionPreferenceProvider>
+
+  return <MotionPreferenceProvider settingsMotion={state.settings.motion}><AppShell state={state} dispatch={dispatch} view={view} setView={setView} activeLesson={activeLesson} setActiveLesson={setActiveLesson} /></MotionPreferenceProvider>
+}
+
+function AppShell({ state, dispatch, view, setView, activeLesson, setActiveLesson }: {
+  state: ReturnType<typeof useAppState>['state']
+  dispatch: ReturnType<typeof useAppState>['dispatch']
+  view: View
+  setView(view: View): void
+  activeLesson: string | null
+  setActiveLesson(lessonId: string | null): void
+}) {
+  const { reduced } = useMotionPref()
+  const direction = directionFor(view)
+  const viewContainerRef = useRef<HTMLDivElement | null>(null)
+
+  // Requirements 10.6, 10.7: move focus to the newly mounted view's heading
+  // as soon as it mounts, decoupled from the enter-transition timeline.
+  // AnimatePresence mode="wait" defers the incoming node's mount until the
+  // outgoing node's exit finishes — that ordering is inherent to mode="wait"
+  // and is accepted here (it is the accepted reading of 10.6, per task
+  // guidance: focus must not additionally wait for the incoming element's
+  // own enter animation to finish playing on top of that). This effect fires
+  // on the React commit that mounts the new node, before its motion enter
+  // transition has completed, so it does not wait on that transition.
+  useEffect(() => {
+    focusEntryPoint(viewContainerRef.current)
+  }, [view])
 
   const openPurchaseLesson = () => {
     dispatch({ type: 'log_event', event: { type: 'fake_purchase_started', amount: 0 } })
@@ -44,6 +101,15 @@ export function App() {
   const navigateToGame = (game: GameId) => { if (sessionMinutes > 0) setView(game) }
   const gameNode = view === 'roulette' ? <RouletteGame {...gameProps('roulette')} /> : view === 'color' ? <ColorGame {...gameProps('color')} /> : view === 'blackjack' ? <BlackjackGame {...gameProps('blackjack')} /> : view === 'poker' ? <PokerGame {...gameProps('poker')} /> : view === 'tongits' ? <TongitsGame {...gameProps('tongits')} /> : null
 
+  const viewNode = view === 'home' ? <Dashboard points={state.mastery.points} onWallet={() => setView('wallet')} onGame={navigateToGame} onNavigate={setView} />
+    : view === 'wallet' ? <Wallet balance={state.wallet} ledger={state.ledger} onPurchaseAttempt={openPurchaseLesson} />
+    : view === 'settings' ? <Settings state={state.settings} onChange={(key, value) => dispatch({ type: 'set_setting', key, value })} onReset={() => dispatch({ type: 'reset' })} />
+    : view === 'alternatives' ? <Alternatives onComplete={(activityId) => { dispatch({ type: 'log_event', event: { type: 'alternative_completed', detail: activityId } }); dispatch({ type: 'complete_lesson', lessonId: `alternative-${activityId}`, points: 5 }) }} />
+    : view === 'progress' ? <Progress mastery={state.mastery} />
+    : view === 'report' ? <CounselorReport state={state} />
+    : gameNode ? <GameSession key={view} minutes={sessionMinutes} onBack={() => setView('home')} onAlternative={() => setView('alternatives')}>{gameNode}</GameSession>
+    : null
+
   return (
     <main className={`app-shell theme-${state.settings.theme} ${state.settings.highContrast ? 'high-contrast' : ''} motion-${state.settings.motion} intensity-${state.settings.intensity}`}>
       <section className="phone-frame">
@@ -55,13 +121,19 @@ export function App() {
         </header>
         <div className="safety-strip">No real money • Local-only prototype • Content provisional</div>
         <div id="main-content">
-          {view === 'home' && <Dashboard points={state.mastery.points} onWallet={() => setView('wallet')} onGame={navigateToGame} onNavigate={setView} />}
-          {view === 'wallet' && <Wallet balance={state.wallet} ledger={state.ledger} onPurchaseAttempt={openPurchaseLesson} />}
-          {view === 'settings' && <Settings state={state.settings} onChange={(key, value) => dispatch({ type: 'set_setting', key, value })} onReset={() => dispatch({ type: 'reset' })} />}
-          {view === 'alternatives' && <Alternatives onComplete={(activityId) => { dispatch({ type: 'log_event', event: { type: 'alternative_completed', detail: activityId } }); dispatch({ type: 'complete_lesson', lessonId: `alternative-${activityId}`, points: 5 }) }} />}
-          {view === 'progress' && <Progress mastery={state.mastery} />}
-          {view === 'report' && <CounselorReport state={state} />}
-          {gameNode && <GameSession key={view} minutes={sessionMinutes} onBack={() => setView('home')} onAlternative={() => setView('alternatives')}>{gameNode}</GameSession>}
+          <AnimatePresence mode="wait" custom={direction}>
+            <motion.div
+              key={view}
+              ref={viewContainerRef}
+              custom={direction}
+              variants={reduced ? fastFade : viewTransition}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+            >
+              {viewNode}
+            </motion.div>
+          </AnimatePresence>
         </div>
         <nav className="bottom-nav" aria-label="Primary">
           <button className={view === 'home' ? 'active' : ''} onClick={() => setView('home')}>Home</button>
@@ -71,11 +143,13 @@ export function App() {
           <button className={view === 'settings' ? 'active' : ''} onClick={() => setView('settings')}>Settings</button>
         </nav>
       </section>
-      {activeLesson && <InterventionModal lessonId={activeLesson} onClose={() => setActiveLesson(null)} onAlternative={() => { setActiveLesson(null); setView('alternatives') }} onComplete={(reflection, share) => {
-        if (reflection) dispatch({ type: 'add_reflection', lessonId: activeLesson, text: reflection, shareInReport: share })
-        dispatch({ type: 'complete_lesson', lessonId: activeLesson })
-        dispatch({ type: 'log_event', event: { type: 'intervention_completed', detail: activeLesson } })
-      }} />}
+      <AnimatePresence>
+        {activeLesson && <InterventionModal key="intervention-modal" lessonId={activeLesson} onClose={() => setActiveLesson(null)} onAlternative={() => { setActiveLesson(null); setView('alternatives') }} onComplete={(reflection, share) => {
+          if (reflection) dispatch({ type: 'add_reflection', lessonId: activeLesson, text: reflection, shareInReport: share })
+          dispatch({ type: 'complete_lesson', lessonId: activeLesson })
+          dispatch({ type: 'log_event', event: { type: 'intervention_completed', detail: activeLesson } })
+        }} />}
+      </AnimatePresence>
     </main>
   )
 }

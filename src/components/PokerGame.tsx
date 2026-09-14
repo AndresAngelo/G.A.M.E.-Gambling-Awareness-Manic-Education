@@ -18,6 +18,8 @@ import {
 } from '../domain/games/poker'
 import { seededRandom, systemRandom, type RandomSource } from '../domain/rng'
 import type { AppEvent } from '../domain/types'
+import { FlipCard } from './FlipCard'
+import { useMotionPref } from '../motion/MotionPreferenceContext'
 
 interface Props {
   balance: number
@@ -219,6 +221,7 @@ function Table({
   outcome: string | null
   isHumanTurn: boolean
 }) {
+  const { reduced } = useMotionPref()
   const winners = table.street === 'showdown' ? new Set(table.winners ?? []) : new Set<string>()
   return (
     <div className="poker-table">
@@ -228,7 +231,7 @@ function Table({
           {table.board.length === 0 ? (
             <span className="poker-card placeholder">no cards yet</span>
           ) : (
-            table.board.map((card) => <CardChip key={cardKey(card)} card={card} />)
+            table.board.map((card) => <CardChip key={cardKey(card)} card={card} reduced={reduced} />)
           )}
         </div>
         <small>Pot: {table.pot} chips</small>
@@ -253,18 +256,19 @@ function Table({
                 {seat.folded && <span className="tag"> folded</span>}
               </div>
               <div className="poker-cards">
-                {reveal && !seat.folded ? (
-                  seat.hole.map((card) => <CardChip key={cardKey(card)} card={card} />)
-                ) : (
-                  <>
-                    <span className="poker-card facedown" aria-label="hidden card">
-                      🂠
+                {!seat.folded &&
+                  seat.hole.map((card, slot) => (
+                    <span
+                      key={slot}
+                      aria-label={reveal ? undefined : 'hidden card'}
+                    >
+                      <FlipCard
+                        frontLabel={reveal ? cardLabel(card) : ''}
+                        revealed={reveal}
+                        reduced={reduced}
+                      />
                     </span>
-                    <span className="poker-card facedown" aria-label="hidden card">
-                      🂠
-                    </span>
-                  </>
-                )}
+                  ))}
               </div>
               {value && table.street === 'showdown' && !seat.folded && (
                 <small>{categoryLabels[value.category]}</small>
@@ -283,11 +287,8 @@ function Table({
   )
 }
 
-function CardChip({ card }: { card: Card }) {
-  const red = card.suit === 'h' || card.suit === 'd'
-  return (
-    <span className={`poker-card ${red ? 'red' : 'black'}`}>{cardLabel(card)}</span>
-  )
+function CardChip({ card, reduced }: { card: Card; reduced: boolean }) {
+  return <FlipCard frontLabel={cardLabel(card)} revealed={true} reduced={reduced} />
 }
 
 function ReasoningLog({ log, table }: { log: HandLog[]; table: PokerTable }) {

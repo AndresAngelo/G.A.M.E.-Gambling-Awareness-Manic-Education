@@ -7,6 +7,9 @@
     "write"
   ],
   "allowedTools": ["read"],
+  "permissions": {
+    "rules": []
+  },
   "includeMcpJson": false,
   "includePowers": false,
   "welcomeMessage": "Responsible-gambling content reviewer ready. Tell me which lesson, intervention, simulation, report, or user journey to review."

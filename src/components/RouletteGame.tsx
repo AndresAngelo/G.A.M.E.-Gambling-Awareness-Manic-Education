@@ -1,7 +1,9 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { rouletteColor, rouletteReturn, spinRoulette, type RouletteBet } from '../domain/games/roulette'
 import { systemRandom } from '../domain/rng'
 import type { AppEvent } from '../domain/types'
+import { useMotionPref } from '../motion/MotionPreferenceContext'
+import { RouletteWheel } from './RouletteWheel'
 
 interface Props {
   balance: number
@@ -17,9 +19,17 @@ export function RouletteGame({ balance, onWallet, onEvent, onIntervention, onBac
   const [mode, setMode] = useState<'free' | 'scenario'>('free')
   const [choice, setChoice] = useState<BetChoice>('red')
   const [stake, setStake] = useState(10)
+  // Visible state: only ever committed from handleSettled (requirements 8.5, 8.7).
   const [result, setResult] = useState<number | null>(null)
   const [returned, setReturned] = useState(0)
   const [lessonReady, setLessonReady] = useState(false)
+
+  // Held state: computed synchronously at play time, revealed only on settle.
+  const [spinToken, setSpinToken] = useState(0)
+  const [pendingResult, setPendingResult] = useState<number | null>(null)
+  const pendingDataRef = useRef<{ number: number; payout: number; largeWin: boolean; stake: number } | null>(null)
+
+  const { reduced } = useMotionPref()
 
   const bet = useMemo<RouletteBet>(() => {
     if (mode === 'scenario' || choice === 'straight7') return { kind: 'straight', number: 7, stake }
@@ -33,17 +43,28 @@ export function RouletteGame({ balance, onWallet, onEvent, onIntervention, onBac
     onEvent({ type: 'bet_placed', game: 'roulette', amount: stake })
     const number = mode === 'scenario' ? 7 : spinRoulette(systemRandom)
     const payout = rouletteReturn(number, bet)
+    const largeWin = payout >= stake * 10
+    pendingDataRef.current = { number, payout, largeWin, stake }
+    setPendingResult(number)
+    setSpinToken((token) => token + 1)
+  }
+
+  const handleSettled = () => {
+    const pending = pendingDataRef.current
+    if (!pending) return
+    const { number, payout, largeWin, stake: pendingStake } = pending
     if (payout) onWallet(payout, 'Roulette return')
     setResult(number)
     setReturned(payout)
-    const largeWin = payout >= stake * 10
-    onEvent({ type: 'round_resolved', game: 'roulette', amount: payout - stake, detail: largeWin ? 'large-win' : payout ? 'win' : 'loss' })
+    onEvent({ type: 'round_resolved', game: 'roulette', amount: payout - pendingStake, detail: largeWin ? 'large-win' : payout ? 'win' : 'loss' })
     setLessonReady(mode === 'scenario' || largeWin)
+    pendingDataRef.current = null
   }
 
   return <section className="game-view" aria-labelledby="roulette-title">
     <GameTop onBack={onBack} mode={mode} setMode={setMode} />
     <p className="eyebrow">European single-zero roulette</p><h1 id="roulette-title">Roulette</h1>
+    <RouletteWheel spinToken={spinToken} target={pendingResult} reduced={reduced} onSettled={handleSettled} />
     <div className={`roulette-result ${result === null ? '' : rouletteColor(result)}`} aria-live="polite"><span>{result ?? '?'}</span><small>{result === null ? 'Place a fictional wager' : `${rouletteColor(result)} • ${returned ? `returned ${returned}` : 'wager lost'}`}</small></div>
     {mode === 'scenario' && <div className="scenario-banner">Guided scenario: a scripted straight-up win on 7 demonstrates memorable celebration. This outcome is not random.</div>}
     <label>Bet type<select value={mode === 'scenario' ? 'straight7' : choice} disabled={mode === 'scenario'} onChange={(event) => setChoice(event.target.value as BetChoice)}>

@@ -443,6 +443,31 @@ select { min-height: 44px; padding: 8px 32px 8px 10px; border: 1px solid var(--c
 .roulette-result.red { background: #a62e3c; }
 .roulette-result.black { background: #101218; }
 .roulette-result.green { background: #157452; }
+/* Mechanical roulette wheel (RouletteWheel.tsx): the wheel's rotate animation is driven by
+   Motion's `animate`/`transition` props on the <motion.svg> (JS/WAAPI timing), not a CSS
+   `transition`/`animation`, so it is unaffected by the `prefers-reduced-motion` block's
+   `transition-duration`/`animation-duration` overrides below; MOTION_TOKENS.mechanical's
+   reducedDuration (read by the component) is what shortens it instead. No CSS exemption rule
+   is needed for the same reason task 13.1 found for the dice. */
+.roulette-wheel { position: relative; width: 220px; height: 220px; margin: 16px auto; }
+.roulette-wheel svg { display: block; width: 100%; height: 100%; }
+/* Fixed marker the settle angle is measured against (see RouletteWheel.tsx's angleForPocket /
+   rotation math): stays pinned at 12 o'clock while the wheel itself rotates underneath it. A
+   small downward-pointing triangle via the border trick, not color alone, so it reads as a
+   pointer regardless of theme or color vision. */
+.roulette-marker {
+  position: absolute;
+  top: -4px;
+  left: 50%;
+  z-index: 1;
+  width: 0;
+  height: 0;
+  border-left: 10px solid transparent;
+  border-right: 10px solid transparent;
+  border-top: 16px solid var(--color-accent);
+  transform: translateX(-50%);
+  filter: drop-shadow(0 1px 2px #0008);
+}
 .stake-picker { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 14px 0; }
 .stake-picker legend { grid-column: 1 / -1; }
 .stake-picker button { color: var(--color-stake-text); background: var(--color-stake-bg); }
@@ -454,8 +479,59 @@ select { min-height: 44px; padding: 8px 32px 8px 10px; border: 1px solid var(--c
 .round-win { color: var(--color-win-text); font-weight: 900; text-align: center; }
 .round-loss { color: var(--color-loss-text); font-weight: 900; text-align: center; }
 
-.color-dice { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 18px 0; }
+/* Registers --die-step as an animatable integer custom property. Motion (ColorDice.tsx) drives
+   this value with its own `animate`/`transition` (WAAPI/JS timing, not a CSS `transition`), so
+   this registration exists only so the browser treats fractional in-flight values as a genuine
+   interpolated number rather than a discrete string swap; it does not opt this property into
+   the `prefers-reduced-motion` block below, which only targets CSS `animation-duration` /
+   `transition-duration` and never touches Motion's own JS-driven timing either way.
+   Unsupported browsers (no @property) fall back gracefully: --die-step still resolves to its
+   underlying number at every frame, calc() below still resolves, and the die still lands on a
+   discrete rest orientation once the animation completes; only the (optional) smoothness of the
+   in-between paint steps for browsers lacking native custom-property interpolation may differ. */
+@property --die-step {
+  syntax: '<integer>';
+  inherits: false;
+  initial-value: 0;
+}
+
+.color-dice { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 18px 0; perspective: 600px; }
 .color-die { aspect-ratio: 1; display: grid; place-items: center; align-content: center; border: 3px solid #fff8; border-radius: 18px; color: #fff; background: #252d55; box-shadow: inset 0 -8px 18px #0004; }
+
+/* .color-die-tumble is the aria-hidden animated die (ColorDice.tsx); .color-die is the separate,
+   unanimated aria-live result die rendered by ColorGame.tsx once a roll is committed. Composition
+   note: `DieFace` inside .color-die-tumble always renders the die's *target* face text for the
+   whole animation (React never swaps it mid-flight), so the discrete-face guarantee required by
+   7.9 already holds at the DOM level — CSS cannot make a static text node show a different face,
+   and doesn't need to. What --die-step drives here is a physically-plausible tumble *motion* on
+   top of that static face: a cube-style rotation that advances one discrete 60deg stop per step
+   (one stop per face, 6 stops per full turn, matching FACE_ORDER's 6 entries) and always rests at
+   an exact multiple of 60deg because `totalSteps` from ColorDice.tsx is always an integer at
+   animation completion — so the die never settles mid-rotation. It is a visual stand-in for
+   "which face is showing" rather than a literal face swap; a true per-frame face swap would
+   require ColorDice.tsx to also change DieFace's `faceId` as --die-step advances, which is out of
+   this file's scope (component-level follow-up, not a CSS-only fix). */
+.color-die-tumble {
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  border: 3px solid #fff8;
+  border-radius: 18px;
+  color: #fff;
+  background: #252d55;
+  box-shadow: inset 0 -8px 18px #0004;
+  transform-style: preserve-3d;
+  transform: rotateX(calc(var(--die-step, 0) * 60deg));
+  backface-visibility: hidden;
+}
+.color-die-placeholder { transform: none; box-shadow: inset 0 -8px 18px #0004; opacity: .7; }
+/* .die-face is DieFace's own wrapper (rendered inside both .color-die-tumble and
+   .color-die-placeholder); sized independently of --die-step so its text stays flat and legible
+   regardless of the parent's rotateX, per preserve-3d/backface-visibility above. */
+.die-face { display: grid; place-items: center; align-content: center; backface-visibility: hidden; }
+.die-face span { font-size: 2.4rem; line-height: 1; }
+.die-face small { margin-top: 5px; font-weight: 900; }
 .color-die span { font-size: 2.4rem; line-height: 1; }
 .color-die small { margin-top: 5px; font-weight: 900; }
 .color-die.red, .color-option.red { background: #a83242; }
@@ -465,6 +541,9 @@ select { min-height: 44px; padding: 8px 32px 8px 10px; border: 1px solid var(--c
 .color-die.white, .color-option.white { color: #15182a; background: #f3f4ff; }
 .color-die.pink, .color-option.pink { color: #21101b; background: #f084bd; }
 .color-bets { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+@media (max-width: 370px) {
+  .roulette-wheel { width: min(220px, 100%); height: auto; aspect-ratio: 1; }
+}
 .color-option { display: flex; align-items: center; gap: 8px; min-height: 48px; padding: 8px; border: 2px solid transparent; border-radius: 10px; font-weight: 900; }
 .color-option:has(input:checked) { border-color: var(--color-selected-outline); box-shadow: 0 0 0 2px var(--color-selected-ring); }
 .color-option input { width: 20px; height: 20px; }
@@ -478,16 +557,53 @@ select { min-height: 44px; padding: 8px 32px 8px 10px; border: 1px solid var(--c
 .blackjack-table { display: grid; gap: 14px; margin: 18px 0; padding: 18px; border: 4px solid #8b6740; border-radius: 45% 45% 18px 18px; background: radial-gradient(circle at center, #166546, #0b3f2f); }
 .blackjack-hand { text-align: center; }
 .blackjack-hand h2 { margin-bottom: 6px; font-size: 1rem; }
-.blackjack-cards { display: flex; justify-content: center; gap: 7px; min-height: 74px; margin: 0 0 5px; padding: 0; list-style: none; }
+.blackjack-cards { display: flex; justify-content: center; gap: 7px; min-height: 74px; margin: 0 0 5px; padding: 0; list-style: none; perspective: 600px; }
 .blackjack-card, .poker-card, .tongits-card { display: inline-grid; place-items: center; min-width: 48px; min-height: 66px; padding: 6px; border: 1px solid #c9cce1; border-radius: 8px; color: #11152a; background: #fff; box-shadow: 0 5px 10px #0005; font-weight: 900; }
 .blackjack-card-empty { color: #8590b8; background: #e9ebf5; }
+
+/* Shared card-flip visual (FlipCard.tsx), reused by Blackjack/Poker/Tong-its. The container's
+   `transform-style: preserve-3d` and each face's `backface-visibility`/`transform` are already
+   set inline by the component, so CSS deliberately does not repeat or override those — it only
+   supplies sizing, face stacking (`position: absolute; inset: 0`), and the card-face aesthetics.
+   The `perspective` needed to make the rotateY read as a real 3D flip (rather than a squash) is
+   set on the ANCESTOR containers (.blackjack-cards / .poker-cards / .tongits-hand above), not
+   here, since `perspective` on the rotating element itself doesn't establish a useful 3D context
+   for its own transform. The flip's rotateY animation is entirely Motion-JS-driven (`animate`/
+   `transition` props in FlipCard.tsx, i.e. WAAPI/JS timing), not a CSS `transition`/`animation`,
+   so it is unaffected by the `prefers-reduced-motion` block's `transition-duration`/
+   `animation-duration` overrides below; CARD_FLIP_TOKEN.reducedDuration (read by the component)
+   is what shortens it under reduced motion instead. */
+.flip-card {
+  position: relative;
+  min-width: 48px;
+  min-height: 66px;
+}
+.flip-card-face {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  font-weight: 900;
+}
+.flip-card-face-front {
+  color: #11152a;
+  background: #fff;
+  box-shadow: 0 5px 10px #0005;
+}
+.flip-card-face-back {
+  color: #fff;
+  background: repeating-linear-gradient(45deg, #2a3471 0 5px, #43529e 5px 10px);
+  box-shadow: 0 5px 10px #0005;
+}
 .blackjack-actions, .tongits-actions { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
 .blackjack-outcome { margin: 10px 0; padding: 12px; border-radius: 12px; color: var(--color-outcome-text); background: var(--color-outcome-bg); text-align: center; font-weight: 900; }
 .blackjack-outcome.player-blackjack, .blackjack-outcome.player-win { color: #10241f; background: #75dfd0; }
 
 .poker-table { margin: 14px 0; padding: 14px; border: 4px solid #775331; border-radius: 40px; background: radial-gradient(circle, #176248, #0a3b2d); }
 .poker-board { display: grid; gap: 7px; place-items: center; padding: 12px; border-bottom: 1px solid #ffffff55; }
-.poker-cards { display: flex; flex-wrap: wrap; gap: 5px; }
+.poker-cards { display: flex; flex-wrap: wrap; gap: 5px; perspective: 600px; }
 .poker-card { min-width: 39px; min-height: 54px; font-size: .85rem; }
 .poker-card.red { color: #a42638; }
 .poker-card.black { color: #141626; }
@@ -509,7 +625,12 @@ select { min-height: 44px; padding: 8px 32px 8px 10px; border: 1px solid var(--c
 .tongits-seat { display: grid; gap: 3px; min-width: 0; padding: 9px; border: 1px solid #4f7b6e; border-radius: 10px; background: #0d2e26; }
 .tongits-seat.active { border-color: #f9d65c; box-shadow: 0 0 0 2px #f9d65344; }
 .tongits-seat span, .tongits-seat small { overflow-wrap: anywhere; color: #cbded8; font-size: .7rem; }
-.tongits-hand { display: flex; gap: 5px; margin: 14px -4px; padding: 6px 4px 14px; overflow-x: auto; }
+.tongits-hand { display: flex; gap: 5px; margin: 14px -4px; padding: 6px 4px 14px; overflow-x: auto; perspective: 600px; }
+/* Only .selected's translate/border-color are CSS-transitioned here; the flip itself (rotateY)
+   is driven entirely by Motion's `animate`/`transition` props on .flip-card and its faces
+   (see FlipCard.tsx), so this transition never touches rotateY and cannot compete with the
+   flip animation. It is also unaffected by the transition-duration override below since it
+   targets an unrelated visual (selection lift), not the mechanical flip. */
 .tongits-card { flex: 0 0 46px; min-width: 46px; min-height: 64px; transition: translate .12s ease, border-color .12s ease; }
 .tongits-card.selected { border: 3px solid #f9d65c; translate: 0 -7px; }
 .tongits-actions { grid-template-columns: repeat(2, 1fr); }
