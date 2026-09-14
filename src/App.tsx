@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import { Alternatives } from './components/Alternatives'
 import { BlackjackGame } from './components/BlackjackGame'
@@ -67,7 +67,6 @@ function AppShell({ state, dispatch, view, setView, activeLesson, setActiveLesso
 }) {
   const { reduced } = useMotionPref()
   const direction = directionFor(view)
-  const viewContainerRef = useRef<HTMLDivElement | null>(null)
 
   // Requirements 10.6, 10.7: move focus to the newly mounted view's heading
   // as soon as it mounts, decoupled from the enter-transition timeline.
@@ -75,12 +74,14 @@ function AppShell({ state, dispatch, view, setView, activeLesson, setActiveLesso
   // outgoing node's exit finishes — that ordering is inherent to mode="wait"
   // and is accepted here (it is the accepted reading of 10.6, per task
   // guidance: focus must not additionally wait for the incoming element's
-  // own enter animation to finish playing on top of that). This effect fires
-  // on the React commit that mounts the new node, before its motion enter
-  // transition has completed, so it does not wait on that transition.
-  useEffect(() => {
-    focusEntryPoint(viewContainerRef.current)
-  }, [view])
+  // own enter animation to finish playing on top of that). A callback ref
+  // (rather than a `[view]`-keyed effect) is used because AnimatePresence
+  // controls the incoming node's actual DOM mount timing itself; an effect
+  // keyed on `view` fires on the state-change commit, which precedes that
+  // mount and reads a stale or null container.
+  const focusOnViewMount = useCallback((node: HTMLDivElement | null) => {
+    if (node) focusEntryPoint(node)
+  }, [])
 
   const openPurchaseLesson = () => {
     dispatch({ type: 'log_event', event: { type: 'fake_purchase_started', amount: 0 } })
@@ -124,7 +125,7 @@ function AppShell({ state, dispatch, view, setView, activeLesson, setActiveLesso
           <AnimatePresence mode="wait" custom={direction}>
             <motion.div
               key={view}
-              ref={viewContainerRef}
+              ref={focusOnViewMount}
               custom={direction}
               variants={reduced ? fastFade : viewTransition}
               initial="initial"

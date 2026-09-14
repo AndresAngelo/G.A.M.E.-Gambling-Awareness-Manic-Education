@@ -58,7 +58,6 @@ export function ColorDice({ spinToken, targets, reduced, onSettled }: ColorDiceP
   useEffect(() => {
     settledCountRef.current = 0
     // Reacts to spinToken changing (a new roll starting), not to targets directly.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [spinToken])
 
   const hasValidTargets =

@@ -13,6 +13,7 @@ type SessionPhase = 'confirm' | 'active' | 'complete'
  * reaches zero or below, the phase is `complete`; otherwise `active`. Existing session data
  * (acknowledged/endsAt) is never mutated by this function — it only reads and classifies.
  */
+// eslint-disable-next-line react-refresh/only-export-components -- pure helper exported alongside its component for direct unit testing
 export function phaseFor(acknowledged: boolean, endsAt: number | null, secondsLeft: number): SessionPhase {
   if (!acknowledged || endsAt === null || endsAt === undefined || Number.isNaN(endsAt)) return 'confirm'
   if (!Number.isFinite(secondsLeft) || secondsLeft <= 0) return 'complete'
