@@ -1,8 +1,10 @@
 import { useMemo, useRef, useState } from 'react'
+import { motion } from 'motion/react'
 import { rouletteColor, rouletteReturn, spinRoulette, type RouletteBet } from '../domain/games/roulette'
 import { systemRandom } from '../domain/rng'
 import type { AppEvent } from '../domain/types'
 import { useMotionPref } from '../motion/MotionPreferenceContext'
+import { fadeRise, fastFade, resolveTransition } from '../motion/variants'
 import { RouletteWheel } from './RouletteWheel'
 
 interface Props {
@@ -23,6 +25,10 @@ export function RouletteGame({ balance, onWallet, onEvent, onIntervention, onBac
   const [result, setResult] = useState<number | null>(null)
   const [returned, setReturned] = useState(0)
   const [lessonReady, setLessonReady] = useState(false)
+  // Bumped only inside handleSettled, decoupled from spinToken (which bumps at play-time,
+  // before settle) — keys the result reveal so its enter animation replays on the render
+  // that actually commits the new result/returned, not one render early with stale values.
+  const [settleToken, setSettleToken] = useState(0)
 
   // Held state: computed synchronously at play time, revealed only on settle.
   const [spinToken, setSpinToken] = useState(0)
@@ -56,6 +62,7 @@ export function RouletteGame({ balance, onWallet, onEvent, onIntervention, onBac
     if (payout) onWallet(payout, 'Roulette return')
     setResult(number)
     setReturned(payout)
+    setSettleToken((token) => token + 1)
     onEvent({ type: 'round_resolved', game: 'roulette', amount: payout - pendingStake, detail: largeWin ? 'large-win' : payout ? 'win' : 'loss' })
     setLessonReady(mode === 'scenario' || largeWin)
     pendingDataRef.current = null
@@ -64,8 +71,14 @@ export function RouletteGame({ balance, onWallet, onEvent, onIntervention, onBac
   return <section className="game-view" aria-labelledby="roulette-title">
     <GameTop onBack={onBack} mode={mode} setMode={setMode} />
     <p className="eyebrow">European single-zero roulette</p><h1 id="roulette-title">Roulette</h1>
-    <RouletteWheel spinToken={spinToken} target={pendingResult} reduced={reduced} onSettled={handleSettled} />
-    <div className={`roulette-result ${result === null ? '' : rouletteColor(result)}`} aria-live="polite"><span>{result ?? '?'}</span><small>{result === null ? 'Place a fictional wager' : `${rouletteColor(result)} • ${returned ? `returned ${returned}` : 'wager lost'}`}</small></div>
+    <div className="game-felt game-felt-roulette">
+      <RouletteWheel spinToken={spinToken} target={pendingResult} reduced={reduced} onSettled={handleSettled} />
+    </div>
+    <div className={`roulette-result ${result === null ? '' : rouletteColor(result)}`} aria-live="polite">
+      <motion.div key={result === null ? 'idle' : settleToken} variants={reduced ? fastFade : fadeRise} initial="initial" animate="animate" transition={resolveTransition('element', reduced)}>
+        <span>{result ?? '?'}</span><small>{result === null ? 'Place a fictional wager' : `${rouletteColor(result)} • ${returned ? `returned ${returned}` : 'wager lost'}`}</small>
+      </motion.div>
+    </div>
     {mode === 'scenario' && <div className="scenario-banner">Guided scenario: a scripted straight-up win on 7 demonstrates memorable celebration. This outcome is not random.</div>}
     <label>Bet type<select value={mode === 'scenario' ? 'straight7' : choice} disabled={mode === 'scenario'} onChange={(event) => setChoice(event.target.value as BetChoice)}>
       <option value="red">Red</option><option value="black">Black</option><option value="even">Even</option><option value="odd">Odd</option><option value="low">1–18</option><option value="high">19–36</option><option value="dozen1">1st dozen</option><option value="dozen2">2nd dozen</option><option value="dozen3">3rd dozen</option><option value="straight7">Straight 7</option>

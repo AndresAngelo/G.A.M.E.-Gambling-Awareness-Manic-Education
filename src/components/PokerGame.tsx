@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { AnimatePresence, motion } from 'motion/react'
 import {
   applyAction,
   botDecision,
@@ -20,6 +21,7 @@ import { seededRandom, systemRandom, type RandomSource } from '../domain/rng'
 import type { AppEvent } from '../domain/types'
 import { FlipCard } from './FlipCard'
 import { useMotionPref } from '../motion/MotionPreferenceContext'
+import { fadeRise, fastFade, resolveTransition } from '../motion/variants'
 
 interface Props {
   balance: number
@@ -53,6 +55,14 @@ export function PokerGame({ balance, onWallet, onEvent, onIntervention, onBack }
   const [scriptNote, setScriptNote] = useState<string | null>(null)
   const [outcome, setOutcome] = useState<string | null>(null)
   const [lessonReady, setLessonReady] = useState(false)
+  // Bumped once per start() so hole-card FlipCards (keyed by seat slot, not card identity)
+  // replay their entrance flip on every new hand, even one that happens to redeal the same
+  // card into the same slot.
+  const [dealToken, setDealToken] = useState(0)
+  // Bumped only inside resolve(), decoupled from dealToken — keys the outcome reveal so it
+  // replays even for the scripted scenario, where setOutcome(null) and the resolved outcome
+  // can land in the same React batch and never commit an intermediate null render.
+  const [resultToken, setResultToken] = useState(0)
 
   const table = round?.table ?? null
   const isHumanTurn =
@@ -68,6 +78,7 @@ export function PokerGame({ balance, onWallet, onEvent, onIntervention, onBack }
 
   const start = () => {
     if (BUY_IN > balance) return
+    setDealToken((token) => token + 1)
     onWallet(-BUY_IN, `Poker ${mode} buy-in`)
     onEvent({ type: 'bet_placed', game: 'poker', amount: BUY_IN })
     setOutcome(null)
@@ -119,6 +130,7 @@ export function PokerGame({ balance, onWallet, onEvent, onIntervention, onBack }
         : `You lose. Winner: ${winners.map((id) => seatName(finalTable, id)).join(', ')}.`,
     )
     setLessonReady(mode === 'scenario' || largeWin)
+    setResultToken((token) => token + 1)
   }
 
   return (
@@ -147,7 +159,7 @@ export function PokerGame({ balance, onWallet, onEvent, onIntervention, onBack }
           their own cards — never yours.
         </p>
       ) : (
-        <Table table={table} outcome={outcome} isHumanTurn={isHumanTurn} />
+        <Table table={table} outcome={outcome} isHumanTurn={isHumanTurn} dealToken={dealToken} resultToken={resultToken} />
       )}
 
       {isHumanTurn && (
@@ -216,10 +228,14 @@ function Table({
   table,
   outcome,
   isHumanTurn,
+  dealToken,
+  resultToken,
 }: {
   table: PokerTable
   outcome: string | null
   isHumanTurn: boolean
+  dealToken: number
+  resultToken: number
 }) {
   const { reduced } = useMotionPref()
   const winners = table.street === 'showdown' ? new Set(table.winners ?? []) : new Set<string>()
@@ -231,7 +247,7 @@ function Table({
           {table.board.length === 0 ? (
             <span className="poker-card placeholder">no cards yet</span>
           ) : (
-            table.board.map((card) => <CardChip key={cardKey(card)} card={card} reduced={reduced} />)
+            table.board.map((card) => <CardChip key={cardKey(card)} card={card} reduced={reduced} dealToken={dealToken} />)
           )}
         </div>
         <small>Pot: {table.pot} chips</small>
@@ -266,6 +282,7 @@ function Table({
                         frontLabel={reveal ? cardLabel(card) : ''}
                         revealed={reveal}
                         reduced={reduced}
+                        dealToken={dealToken}
                       />
                     </span>
                   ))}
@@ -279,33 +296,58 @@ function Table({
       </ul>
 
       {outcome && (
-        <p className="poker-outcome" aria-live="polite">
+        <motion.p
+          key={resultToken}
+          className="poker-outcome"
+          aria-live="polite"
+          variants={reduced ? fastFade : fadeRise}
+          initial="initial"
+          animate="animate"
+          transition={resolveTransition('element', reduced)}
+        >
           {outcome}
-        </p>
+        </motion.p>
       )}
     </div>
   )
 }
 
-function CardChip({ card, reduced }: { card: Card; reduced: boolean }) {
-  return <FlipCard frontLabel={cardLabel(card)} revealed={true} reduced={reduced} />
+function CardChip({ card, reduced, dealToken }: { card: Card; reduced: boolean; dealToken: number }) {
+  return <FlipCard frontLabel={cardLabel(card)} revealed={true} reduced={reduced} dealToken={dealToken} />
 }
 
 function ReasoningLog({ log, table }: { log: HandLog[]; table: PokerTable }) {
+  const { reduced } = useMotionPref()
+  const [open, setOpen] = useState(false)
   if (log.length === 0) return null
   return (
-    <details className="poker-log">
-      <summary>Development reasoning ({log.length} actions)</summary>
-      <ol>
-        {log.map((entry, index) => (
-          <li key={`${entry.seatId}-${index}`}>
-            <strong>{seatName(table, entry.seatId)}</strong> — {streetLabel(entry.street)}:{' '}
-            <em>{entry.action}</em>
-            {entry.reasoning ? ` — ${entry.reasoning}` : ''}
-          </li>
-        ))}
-      </ol>
-    </details>
+    <div className="poker-log">
+      <button type="button" className="text-button" aria-expanded={open} onClick={() => setOpen((value) => !value)}>
+        {open ? 'Hide' : 'Show'} development reasoning ({log.length} actions)
+      </button>
+      <AnimatePresence initial={false}>
+        {open && (
+          <motion.div
+            key="poker-log-content"
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={resolveTransition('element', reduced)}
+            style={{ overflow: 'hidden' }}
+          >
+            <ol>
+              {log.map((entry, index) => (
+                <li key={`${entry.seatId}-${index}`}>
+                  <strong>{seatName(table, entry.seatId)}</strong> — {streetLabel(entry.street)}:{' '}
+                  <em>{entry.action}</em>
+                  {entry.reasoning ? ` — ${entry.reasoning}` : ''}
+                </li>
+              ))}
+            </ol>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
   )
 }
 

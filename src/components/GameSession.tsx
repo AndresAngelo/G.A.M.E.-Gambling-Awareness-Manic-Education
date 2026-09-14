@@ -64,6 +64,7 @@ export function GameSession({ minutes, onBack, onAlternative, children }: Props)
   } else {
     phaseNode = (
       <>
+        <div className="session-awareness"><strong>Remember:</strong> playing never earns mastery. Only reflection, learning checks, and healthier alternatives do.</div>
         <div className="session-timer" role="status"><span>Learning-session boundary</span><strong>{label}</strong></div>
         {children}
       </>

@@ -169,7 +169,7 @@ function Dashboard({ points, onWallet, onGame, onNavigate }: { points: number; o
     <div className="recovery-shortcuts"><button onClick={() => onNavigate('alternatives')}>◎ Calm an urge</button><button onClick={() => onNavigate('report')}>▤ Counselor report</button></div>
     <h2>Learning simulations</h2>
     {graduated && <div className="graduated"><strong>Graduated:</strong> game simulations are no longer available. Your alternatives and report remain accessible.</div>}
-    <div className="game-grid" aria-label="Learning simulations">{gameCards.map((game) => <article className="game-card" key={game.id}><span aria-hidden="true">{game.icon}</span><h3>{game.name}</h3><p>Random free play + guided scenario</p><button onClick={() => onGame(game.id)} disabled={graduated}>{graduated ? 'Retired' : 'Open lesson'}</button></article>)}</div>
+    <div className="game-grid" aria-label="Learning simulations">{gameCards.map((game) => <article className="game-card" key={game.id}><span aria-hidden="true">{game.icon}</span><h3>{game.name}</h3><p>Random free play + guided scenario</p><button className="primary" onClick={() => onGame(game.id)} disabled={graduated}>{graduated ? 'Retired' : 'Open lesson'}</button></article>)}</div>
     <button className="wallet-banner" onClick={onWallet}><span>Fictional wallet</span><strong>Review simulated credits →</strong></button>
   </section>
 }

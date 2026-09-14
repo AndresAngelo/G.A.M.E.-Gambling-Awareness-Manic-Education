@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { motion } from 'motion/react'
 import {
   handValue,
   isBlackjack,
@@ -14,6 +15,7 @@ import { seededRandom, systemRandom } from '../domain/rng'
 import type { AppEvent } from '../domain/types'
 import { FlipCard } from './FlipCard'
 import { useMotionPref } from '../motion/MotionPreferenceContext'
+import { fadeRise, fastFade, resolveTransition } from '../motion/variants'
 
 interface Props {
   balance: number
@@ -57,6 +59,14 @@ export function BlackjackGame({ balance, onWallet, onEvent, onIntervention, onBa
   const [stake, setStake] = useState(10)
   const [round, setRound] = useState<RoundState | null>(null)
   const [lessonReady, setLessonReady] = useState(false)
+  // Bumped once per deal() so FlipCard replays its entrance flip even on the rare re-deal
+  // that coincidentally repeats the same card at the same list position (a same li-key
+  // collision that would otherwise reuse the previous FlipCard instance without animating).
+  const [dealToken, setDealToken] = useState(0)
+  // Bumped only inside finish(), decoupled from dealToken — keys the outcome banner so its
+  // enter animation replays even on back-to-back immediate-blackjack hands, where `round`
+  // never passes through an intermediate non-'done' phase between the two outcomes.
+  const [handToken, setHandToken] = useState(0)
 
   const canAffordDouble = round ? stake <= balance : false
   const actions = useMemo(
@@ -79,10 +89,12 @@ export function BlackjackGame({ balance, onWallet, onEvent, onIntervention, onBa
     })
     setRound({ ...state, dealer: dealt.cards, index: dealt.nextIndex, phase: 'done', outcome, returned })
     setLessonReady(mode === 'scenario' || largeWin)
+    setHandToken((token) => token + 1)
   }
 
   const deal = () => {
     if (stake > balance) return
+    setDealToken((token) => token + 1)
     onWallet(-stake, `Blackjack ${mode} wager`)
     onEvent({ type: 'bet_placed', game: 'blackjack', amount: stake })
     const shoe = mode === 'scenario' ? shuffleShoe(seededRandom(SCENARIO_SEED)) : shuffleShoe(systemRandom)
@@ -178,6 +190,7 @@ export function BlackjackGame({ balance, onWallet, onEvent, onIntervention, onBa
                       frontLabel={cardLabel(card)}
                       revealed={dealerReveal || position === 0}
                       reduced={reduced}
+                      dealToken={dealToken}
                     />
                   </li>
                 ))
@@ -192,7 +205,7 @@ export function BlackjackGame({ balance, onWallet, onEvent, onIntervention, onBa
             {round
               ? round.player.map((card, position) => (
                   <li className="blackjack-card" key={`player-${position}-${cardLabel(card)}`}>
-                    <FlipCard frontLabel={cardLabel(card)} revealed={true} reduced={reduced} />
+                    <FlipCard frontLabel={cardLabel(card)} revealed={true} reduced={reduced} dealToken={dealToken} />
                   </li>
                 ))
               : <li className="blackjack-card blackjack-card-empty">—</li>}
@@ -202,9 +215,17 @@ export function BlackjackGame({ balance, onWallet, onEvent, onIntervention, onBa
       </div>
 
       {round?.phase === 'done' && round.outcome && (
-        <div className={`blackjack-outcome ${round.outcome}`} role="status">
+        <motion.div
+          key={handToken}
+          className={`blackjack-outcome ${round.outcome}`}
+          role="status"
+          variants={reduced ? fastFade : fadeRise}
+          initial="initial"
+          animate="animate"
+          transition={resolveTransition('element', reduced)}
+        >
           {outcomeText[round.outcome]} • {round.returned ? `returned ${round.returned}` : 'wager lost'}
-        </div>
+        </motion.div>
       )}
 
       {(!round || round.phase === 'done') && (

@@ -1,6 +1,8 @@
 import { useMemo, useState } from 'react'
+import { motion } from 'motion/react'
 import { FlipCard } from './FlipCard'
 import { useMotionPref } from '../motion/MotionPreferenceContext'
+import { fadeRise, fastFade, resolveTransition } from '../motion/variants'
 import {
   botDecideDiscard,
   botDecideDraw,
@@ -52,6 +54,9 @@ export function TongitsGame({ balance, onWallet, onEvent, onIntervention, onBack
   const [result, setResult] = useState<string | null>(null)
   const [lessonReady, setLessonReady] = useState(false)
   const [staked, setStaked] = useState(false)
+  // Bumped once per beginHand() so hand FlipCards (keyed by card identity) replay their
+  // entrance flip even when a fresh shuffle happens to redeal a card you already held.
+  const [dealToken, setDealToken] = useState(0)
 
   const { reduced } = useMotionPref()
   const you = state.boards[0]
@@ -64,6 +69,7 @@ export function TongitsGame({ balance, onWallet, onEvent, onIntervention, onBack
 
   const beginHand = () => {
     if (balance < stake) return
+    setDealToken((token) => token + 1)
     const rng = mode === 'scenario' ? seededRandom(SCRIPT_SEED) : systemRandom
     setState(freshState(rng))
     setTurn(0)
@@ -240,7 +246,7 @@ export function TongitsGame({ balance, onWallet, onEvent, onIntervention, onBack
           aria-pressed={selected.has(cardId(card))}
           onClick={() => toggle(cardId(card))}
         >
-          <FlipCard frontLabel={cardId(card)} revealed reduced={reduced} />
+          <FlipCard frontLabel={cardId(card)} revealed reduced={reduced} dealToken={dealToken} />
         </button>
       ))}
     </div>
@@ -249,7 +255,18 @@ export function TongitsGame({ balance, onWallet, onEvent, onIntervention, onBack
 
     {phase === 'over' ? (
       <>
-        {result && <p className="round-win" aria-live="polite">{result}</p>}
+        {result && (
+          <motion.p
+            className="round-win"
+            aria-live="polite"
+            variants={reduced ? fastFade : fadeRise}
+            initial="initial"
+            animate="animate"
+            transition={resolveTransition('element', reduced)}
+          >
+            {result}
+          </motion.p>
+        )}
         <button className="play-button" onClick={beginHand}>Deal a new hand • buy-in {stake}</button>
       </>
     ) : (
