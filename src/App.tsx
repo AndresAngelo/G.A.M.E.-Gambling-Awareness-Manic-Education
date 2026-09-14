@@ -130,7 +130,6 @@ function AppShell({ state, dispatch, view, setView, activeLesson, setActiveLesso
             <a className="quick-exit" href="about:blank"><ExitIcon />Quick exit</a>
           </div>
         </header>
-        <div className="safety-strip">No real money • Local-only prototype • Content provisional</div>
         <div className="console-body">
           <div id="main-content">
             <AnimatePresence mode="wait" custom={direction}>

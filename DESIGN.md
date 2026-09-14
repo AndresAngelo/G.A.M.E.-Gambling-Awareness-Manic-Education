@@ -17,13 +17,13 @@ colors:
   hairline: "#33383f"
 typography:
   display:
-    fontFamily: "'Big Shoulders Stencil Display', 'Arial Narrow', Inter, sans-serif"
-    fontWeight: 700
-    letterSpacing: "-0.01em"
-    textTransform: "uppercase"
+    fontFamily: "'Titan One', Inter, sans-serif"
+    fontWeight: 400
+    letterSpacing: "0"
+    textTransform: "none"
   body:
     fontFamily: "Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
-    lineHeight: 1.55
+    lineHeight: 1.65
 rounded:
   sm: "8px"
   md: "12px"
@@ -78,15 +78,15 @@ Housing (the machine's own gunmetal casing, dark theme) / brushed aluminum (ligh
 
 ## Typography
 
-Display voice: **Big Shoulders Stencil Display** (self-hosted via `@fontsource`, OFL-licensed, weights 600–900), used for all headings, the brand wordmark, and every button label — uppercase, tight tracking (`-0.01em`), literally stencil-cut lettering matching a physical machine panel's labeling. This is the one deliberate, distinctive typographic choice; do not substitute a system font for it on new headings or CTAs.
+Display voice: **Titan One** (self-hosted via `@fontsource`, OFL-licensed, single weight 400 — already very bold by design), used for all headings and the brand wordmark in normal case at normal tracking; button labels stay uppercase for the short-CTA convention, but headings and body text do not. An earlier pass used a stencil-cut display face and forced everything uppercase; user feedback ("hard to read," "military not gamey") replaced it with Titan One's rounded, solid letterforms and dropped the blanket uppercase transform, since a face with literal cut-out gaps in its letters is a real legibility cost, not just an aesthetic one. This is the one deliberate, distinctive typographic choice; do not substitute a system font for it on new headings, and do not reintroduce forced uppercase on paragraph-adjacent text.
 
-Body voice: Inter/system-ui, kept deliberately as a workhorse face for paragraph text, labels, legends, and form controls — the craft rationale is that Operate-mode surfaces are well served by a plain, legible body face, and introducing a second display-caliber font would dilute the one voice that should stand out.
+Body voice: Inter/system-ui at 1rem/1.65 line-height, kept deliberately as a workhorse face for paragraph text, labels, legends, and form controls — the craft rationale is that Operate-mode surfaces are well served by a plain, legible body face, and introducing a second display-caliber font would dilute the one voice that should stand out. Headings carry generous margin-bottom (20px/14px/8px for h1/h2/h3) so they don't crowd the content beneath them.
 
 Numerals (wallet balance, session timer, credit counter, mastery percentage) use `font-variant-numeric: tabular-nums` so digits don't shift width as they update.
 
 ## Layout
 
-The whole viewport is the housing (`.app-shell`, full-bleed, brushed micro-texture + ambient gradient). `.console` is the machine's panel assembly: a sticky header (brand, credit counter, Quick Exit — sticky because Quick Exit is a safety control that must stay reachable regardless of scroll position), an instruction-card strip, and a body split into a nav rail + main content.
+The whole viewport is the housing (`.app-shell`, full-bleed, brushed micro-texture + ambient gradient). `.console` is the machine's panel assembly, itself full-width (no max-width cap — an earlier capped version left visible gaps beside the header on wide viewports): a sticky header (brand, credit counter, Quick Exit — sticky because Quick Exit is a safety control that must stay reachable regardless of scroll position) and a body split into a nav rail + main content. The persistent "No real money / local-only / provisional" strip that used to sit under the header was removed at the user's request; the same disclosures still exist contextually (Onboarding notices, Wallet's "Simulation only" notice).
 
 Below 860px width, the nav rail is a bottom tab bar (icons + labels, `.nav-rail` in normal flow, sticky to the viewport bottom). At 860px and above, it becomes a sticky left rail (`position: sticky; top: 68px` — offset below the sticky header, `order: -1` to read visually first despite following main content in DOM order for a sane mobile tab-bar reading order). Main content is not capped to a fixed height with an internal scrollbar; the whole page scrolls naturally, which is why the header must be the thing that stays put.
 
@@ -110,7 +110,7 @@ Radius scale: `8 / 12 / 16 / 20 / 24px` plus a `999px` pill reserved for small c
 
 ## Do's and Don'ts
 
-- Do keep the display font (Big Shoulders Stencil Display) exclusive to headings, the brand mark, and button labels. Don't introduce a second display-caliber face.
+- Do keep the display font (Titan One) exclusive to headings and the brand mark; button labels use it too but stay uppercase, while headings do not. Don't introduce a second display-caliber face, and don't force paragraph or label text into uppercase.
 - Do use flat color fills for buttons/CTAs. Don't reintroduce a gradient fill — the prior gold→orange gradient was the single most "generic AI dashboard" tell this redesign fixed.
 - Do give every new panel-style surface a single `--bevel`/`--bevel-recessed` box-shadow. Don't stack a border under a separate drop shadow.
 - Do keep the topbar sticky. Don't remove `position: sticky` from `.topbar` — Quick Exit's reachability at any scroll position is a safety requirement, not a style preference.

@@ -1,6 +1,6 @@
 :root {
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  --font-display: 'Big Shoulders Stencil Display', 'Arial Narrow', Inter, sans-serif;
+  --font-display: 'Titan One', Inter, sans-serif;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
 
@@ -28,9 +28,6 @@
   --color-notice-text: #e4e6e2;
   --color-notice-warn-bg: #2e2410;
   --color-notice-warn-border: #7a5a1e;
-
-  --color-safety-bg: #12151a;
-  --color-safety-text: #9aa0a8;
 
   --color-primary-text: #241a02;
   --color-primary-grad-1: #e8b93a;
@@ -178,9 +175,6 @@
   --color-notice-warn-bg: #f7ecd4;
   --color-notice-warn-border: #a9781f;
 
-  --color-safety-bg: #ddd9cd;
-  --color-safety-text: #3d3e38;
-
   --color-primary-text: #2a1c00;
   --color-primary-grad-1: #d99a1f;
   --color-primary-grad-2: #d99a1f;
@@ -283,12 +277,16 @@ button { min-height: 44px; }
 ::-webkit-scrollbar-thumb { border: 2px solid transparent; border-radius: var(--radius-pill); background-color: var(--color-panel-border); background-clip: padding-box; }
 
 h1, h2, h3, p { margin-top: 0; }
-h1, h2, h3, .brand, button, .button { font-family: var(--font-display); letter-spacing: -.01em; }
-h1 { font-size: clamp(2rem, 6vw, 3.4rem); font-weight: 700; line-height: .98; text-transform: uppercase; }
-h2 { font-size: 1.5rem; font-weight: 700; line-height: 1.05; text-transform: uppercase; }
-h3 { font-size: 1.15rem; font-weight: 600; text-transform: uppercase; }
-p { font-family: Inter, ui-sans-serif, system-ui, sans-serif; line-height: 1.55; color: var(--color-text-muted); }
-.lead { max-width: 62ch; margin: 10px 0 0; font-size: 1.05rem; color: var(--color-text-soft); }
+/* Titan One (a single, already-bold weight) carries the "gamey" voice on
+   headings, the brand mark, and button labels — normal tracking, not
+   condensed, so the rounded letterforms stay easy to read at a glance
+   instead of reading as tight military stencil lettering. */
+h1, h2, h3, .brand, button, .button { font-family: var(--font-display); letter-spacing: 0; }
+h1 { margin-bottom: 20px; font-size: clamp(1.9rem, 5vw, 3rem); font-weight: 400; line-height: 1.15; }
+h2 { margin-bottom: 14px; font-size: 1.4rem; font-weight: 400; line-height: 1.2; }
+h3 { margin-bottom: 8px; font-size: 1.1rem; font-weight: 400; line-height: 1.25; }
+p { font-family: Inter, ui-sans-serif, system-ui, sans-serif; font-size: 1rem; line-height: 1.65; color: var(--color-text-muted); }
+.lead { max-width: 62ch; margin: 12px 0 0; font-size: 1.1rem; line-height: 1.6; color: var(--color-text-soft); }
 small, label, .setting-row span, .stake-picker legend, legend { font-family: Inter, ui-sans-serif, system-ui, sans-serif; }
 strong { font-variant-numeric: tabular-nums; }
 
@@ -310,8 +308,7 @@ strong { font-variant-numeric: tabular-nums; }
 }
 
 .console {
-  width: min(100%, 1600px);
-  margin: 0 auto;
+  width: 100%;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
@@ -389,15 +386,6 @@ strong { font-variant-numeric: tabular-nums; }
 }
 .quick-exit svg { width: 14px; height: 14px; }
 
-.safety-strip {
-  padding: 8px min(5vw, 40px);
-  color: var(--color-safety-text);
-  background: var(--color-safety-bg);
-  font-size: .7rem;
-  letter-spacing: .02em;
-  text-align: center;
-}
-
 .console-body {
   display: flex;
   flex-direction: column;
@@ -472,17 +460,18 @@ strong { font-variant-numeric: tabular-nums; }
 @media print {
   .app-shell { display: block; padding: 0; background: #fff; }
   .console { width: 100%; min-height: 0; color: #000; background: #fff; }
-  .topbar, .nav-rail, .safety-strip, .quick-exit { display: none !important; }
+  .topbar, .nav-rail, .quick-exit { display: none !important; }
   p { color: #222; }
 }
 
 button, .button {
   border: 0;
   border-radius: 12px;
-  padding: 11px 16px;
-  font-weight: 700;
+  padding: 13px 18px;
+  font-weight: 400;
+  font-size: .95rem;
   text-transform: uppercase;
-  letter-spacing: .01em;
+  letter-spacing: .03em;
   cursor: pointer;
   text-decoration: none;
   text-align: center;
@@ -497,7 +486,7 @@ button:disabled { cursor: not-allowed; opacity: .45; }
 
 .onboarding { display: flex; flex-direction: column; justify-content: center; min-height: 100vh; max-width: 560px; margin: 0 auto; padding: 24px min(5vw, 40px); gap: 12px; }
 .onboarding .button, .onboarding > button { width: 100%; }
-.notice { padding: 14px; border-radius: var(--radius-md); color: var(--color-notice-text); background: var(--color-notice-bg); box-shadow: var(--bevel-recessed); line-height: 1.45; }
+.notice { padding: 18px; border-radius: var(--radius-md); color: var(--color-notice-text); background: var(--color-notice-bg); box-shadow: var(--bevel-recessed); line-height: 1.6; }
 .notice.warning { background: var(--color-notice-warn-bg); }
 .provisional { padding: 10px 12px; border-radius: var(--radius-sm); color: var(--color-text-soft); background: var(--color-panel-bg); box-shadow: var(--bevel-recessed); font-size: .8rem; }
 fieldset { margin: 4px 0; padding: 14px; border: 1px solid var(--color-notice-border); border-radius: 14px; }
@@ -508,9 +497,9 @@ legend { padding: 0 8px; font-weight: 800; }
 .mastery-card {
   text-transform: none;
   display: grid;
-  gap: 9px;
-  margin: 0 0 16px;
-  padding: 20px;
+  gap: 12px;
+  margin: 0 0 20px;
+  padding: 22px;
   border-radius: var(--radius-xl);
   background: var(--color-mastery-grad-1);
   box-shadow: var(--bevel);
@@ -519,19 +508,19 @@ legend { padding: 0 8px; font-weight: 800; }
 .mastery-card strong { color: var(--color-accent); font-family: var(--font-display); font-size: 2.4rem; }
 .mastery-card span, .mastery-card small { color: var(--color-text-muted); }
 progress { width: 100%; height: 10px; accent-color: var(--color-calm-bg); }
-.game-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; }
+.game-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 18px; margin-top: 6px; }
 .game-card {
   display: flex;
   flex-direction: column;
   min-width: 0;
-  padding: 16px;
+  padding: 20px;
   border-radius: var(--radius-lg);
   background: var(--color-card-bg);
   box-shadow: var(--bevel);
 }
 .game-card > .icon-tile { color: var(--color-accent); }
-.game-card h3 { margin: 10px 0 4px; }
-.game-card p { flex: 1; min-height: 38px; margin-bottom: 12px; font-size: .8rem; }
+.game-card h3 { margin: 12px 0 6px; }
+.game-card p { flex: 1; min-height: 38px; margin-bottom: 14px; font-size: .85rem; line-height: 1.5; }
 /* Color/background intentionally omitted here: these buttons carry the
    app's .primary class so the core "Open lesson" action reads as the
    dashboard's dominant CTA rather than competing on equal footing with
@@ -572,12 +561,10 @@ progress { width: 100%; height: 10px; accent-color: var(--color-calm-bg); }
    theme's extremes and reinforcing key borders/surfaces. */
 .high-contrast { --color-hairline: currentColor; --color-nav-border: currentColor; --bevel-hi: transparent; --bevel-lo: transparent; }
 .high-contrast .topbar, .high-contrast .console { color: #fff; background: #000; }
-.high-contrast p, .high-contrast .safety-strip { color: #fff; }
-.high-contrast .safety-strip { background: #000; }
+.high-contrast p { color: #fff; }
 .high-contrast .notice, .high-contrast .game-card, .high-contrast .mastery-card { border: 1px solid #fff; background: #000; }
 .high-contrast.theme-light .topbar, .high-contrast.theme-light .console { color: #000; background: #fff; }
-.high-contrast.theme-light p, .high-contrast.theme-light .safety-strip { color: #000; }
-.high-contrast.theme-light .safety-strip { background: #fff; }
+.high-contrast.theme-light p { color: #000; }
 .high-contrast.theme-light .notice, .high-contrast.theme-light .game-card, .high-contrast.theme-light .mastery-card { border: 1px solid #000; background: #fff; }
 
 @media (prefers-reduced-motion: reduce) {
@@ -594,9 +581,10 @@ progress { width: 100%; height: 10px; accent-color: var(--color-calm-bg); }
 .game-top label, .game-view > label { display: grid; gap: 5px; color: var(--color-text-muted); font-size: .75rem; font-weight: 800; }
 select { min-height: 44px; padding: 8px 32px 8px 10px; border: 1px solid var(--color-input-border); border-radius: 10px; color: var(--color-input-text); background: var(--color-input-bg); }
 .scenario-banner { margin: 12px 0; padding: 12px; border-radius: 12px; color: var(--color-scenario-text); background: var(--color-scenario-bg); box-shadow: var(--bevel-recessed); font-size: .8rem; line-height: 1.45; }
-.roulette-result { display: grid; place-items: center; width: 170px; height: 170px; margin: 16px auto; border-radius: 50%; background: #1a1f26; box-shadow: var(--bevel-recessed); }
-.roulette-result span { font-family: var(--font-display); font-size: 4rem; font-weight: 700; }
-.roulette-result small { color: #fff; text-align: center; }
+.roulette-result { display: grid; place-items: center; width: 200px; height: 200px; margin: 16px auto; padding: 16px; border-radius: 50%; background: #1a1f26; box-shadow: var(--bevel-recessed); }
+.roulette-result > div { display: grid; justify-items: center; gap: 2px; max-width: 130px; }
+.roulette-result span { font-family: var(--font-display); font-size: 3rem; font-weight: 400; line-height: 1; }
+.roulette-result small { color: #fff; line-height: 1.3; text-align: center; }
 .roulette-result.red { background: #7a2530; }
 .roulette-result.black { background: #101218; }
 .roulette-result.green { background: #1f5e42; }
@@ -821,7 +809,7 @@ select { min-height: 44px; padding: 8px 32px 8px 10px; border: 1px solid var(--c
 
 /* Recovery tools, progression, and report */
 .mastery-button { width: 100%; color: inherit; text-align: left; }
-.recovery-shortcuts { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin: 14px 0; }
+.recovery-shortcuts { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin: 18px 0; }
 .recovery-shortcuts button { color: var(--color-calm-text); background: var(--color-calm-bg); box-shadow: var(--bevel); }
 .alternative-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; }
 .alternative-card { text-transform: none; display: grid; align-content: start; gap: 8px; min-height: 150px; padding: 16px; border-radius: var(--radius-lg); color: var(--color-secondary-text); background: var(--color-card-bg); box-shadow: var(--bevel); text-align: left; }
@@ -838,8 +826,8 @@ select { min-height: 44px; padding: 8px 32px 8px 10px; border: 1px solid var(--c
 
 .graduation-card { display: grid; gap: 10px; margin: 0 0 16px; padding: 20px; border-radius: 20px; background: var(--color-mastery-grad-1); box-shadow: var(--bevel); }
 .graduation-card > strong { color: var(--color-accent); font-family: var(--font-display); font-size: 3rem; }
-.competency-list { display: grid; gap: 8px; padding: 0; list-style: none; }
-.competency-list li { display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 12px; background: var(--color-card-bg-2); box-shadow: var(--bevel); }
+.competency-list { display: grid; gap: 12px; padding: 0; list-style: none; }
+.competency-list li { display: flex; align-items: center; gap: 14px; padding: 16px; border-radius: 12px; background: var(--color-card-bg-2); box-shadow: var(--bevel); }
 .competency-list li > .icon-tile { color: var(--color-calm-bg); }
 .competency-list li span:last-child { display: grid; }
 .competency-list small { color: var(--color-text-muted); }
