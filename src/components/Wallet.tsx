@@ -9,7 +9,6 @@ interface Props {
 export function Wallet({ balance, ledger, onPurchaseAttempt }: Props) {
   return (
     <section aria-labelledby="wallet-title">
-      <p className="eyebrow">Fictional e-wallet</p>
       <h2 id="wallet-title">Learning credits: {balance.toLocaleString()}</h2>
       <div className="notice"><strong>Simulation only.</strong> No payment method can be entered and no credits have real-world value.</div>
       <h3>Simulated credit offers</h3>

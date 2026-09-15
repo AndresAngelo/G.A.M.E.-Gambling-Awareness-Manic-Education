@@ -1,19 +1,21 @@
 import { useEffect, useState } from 'react'
+import { BreathIcon, GroundingIcon, PatternIcon, WaveIcon } from './icons'
+import type { ComponentType } from 'react'
 
 interface Props { onComplete(activityId: string): void }
 type Activity = 'breathing' | 'grounding' | 'pattern' | 'urge'
 
-const activities: { id: Activity; title: string; description: string; icon: string }[] = [
-  { id: 'breathing', title: 'Paced breathing', description: 'A quiet one-minute breathing cycle.', icon: '◌' },
-  { id: 'grounding', title: '5–4–3 grounding', description: 'Reconnect attention to the room around you.', icon: '◎' },
-  { id: 'pattern', title: 'Steady pattern', description: 'A low-stimulation attention reset.', icon: '▦' },
-  { id: 'urge', title: 'Urge surfing', description: 'Watch an urge rise and fall without acting on it.', icon: '≈' },
+const activities: { id: Activity; title: string; description: string; icon: ComponentType }[] = [
+  { id: 'breathing', title: 'Paced breathing', description: 'A quiet one-minute breathing cycle.', icon: BreathIcon },
+  { id: 'grounding', title: '5–4–3 grounding', description: 'Reconnect attention to the room around you.', icon: GroundingIcon },
+  { id: 'pattern', title: 'Steady pattern', description: 'A low-stimulation attention reset.', icon: PatternIcon },
+  { id: 'urge', title: 'Urge surfing', description: 'Watch an urge rise and fall without acting on it.', icon: WaveIcon },
 ]
 
 export function Alternatives({ onComplete }: Props) {
   const [active, setActive] = useState<Activity | null>(null)
-  return <section aria-labelledby="alternatives-title"><p className="eyebrow">Available even when casino lessons taper</p><h1 id="alternatives-title">Choose a quieter next step</h1><p>These practices do not award credits, streaks, jackpots, or playtime. Completion can count toward awareness mastery.</p>
-    {!active && <div className="alternative-grid">{activities.map((activity) => <button key={activity.id} className="alternative-card" onClick={() => setActive(activity.id)}><span aria-hidden="true">{activity.icon}</span><strong>{activity.title}</strong><small>{activity.description}</small></button>)}</div>}
+  return <section aria-labelledby="alternatives-title"><h1 id="alternatives-title">Choose a quieter next step</h1><p>These practices do not award credits, streaks, jackpots, or playtime. Completion can count toward awareness mastery.</p>
+    {!active && <div className="alternative-grid">{activities.map((activity) => { const Icon = activity.icon; return <button key={activity.id} className="alternative-card" onClick={() => setActive(activity.id)}><span className="icon-tile" aria-hidden="true"><Icon /></span><strong>{activity.title}</strong><small>{activity.description}</small></button> })}</div>}
     {active === 'breathing' && <TimedPractice title="Paced breathing" seconds={60} instruction={(left) => Math.ceil(left / 4) % 2 ? 'Breathe in gently' : 'Breathe out slowly'} onDone={() => { onComplete(active); setActive(null) }} />}
     {active === 'urge' && <TimedPractice title="Urge surfing" seconds={120} instruction={(left) => left > 80 ? 'Notice where the urge sits in your body.' : left > 40 ? 'Let the feeling move without feeding it.' : 'Watch the wave lower. You do not have to act.'} onDone={() => { onComplete(active); setActive(null) }} />}
     {active === 'grounding' && <Grounding onDone={() => { onComplete(active); setActive(null) }} />}

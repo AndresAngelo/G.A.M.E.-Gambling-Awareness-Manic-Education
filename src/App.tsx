@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import { Alternatives } from './components/Alternatives'
 import { BlackjackGame } from './components/BlackjackGame'
@@ -19,6 +19,11 @@ import { detectIntervention } from './domain/interventions'
 import { casinoMinutesForMastery } from './domain/state'
 import type { AppEvent, GameId, Settings as SettingsType } from './domain/types'
 import { useAppState } from './useAppState'
+import {
+  BrandIcon, CalmIcon, CardsIcon, DiceIcon, ExitIcon, HomeIcon, ProgressIcon,
+  ReportIcon, RouletteIcon, SettingsIcon, WalletIcon,
+} from './components/icons'
+import type { ComponentType } from 'react'
 
 type View = 'home' | 'wallet' | 'settings' | 'alternatives' | 'progress' | 'report' | GameId
 
@@ -67,7 +72,6 @@ function AppShell({ state, dispatch, view, setView, activeLesson, setActiveLesso
 }) {
   const { reduced } = useMotionPref()
   const direction = directionFor(view)
-  const viewContainerRef = useRef<HTMLDivElement | null>(null)
 
   // Requirements 10.6, 10.7: move focus to the newly mounted view's heading
   // as soon as it mounts, decoupled from the enter-transition timeline.
@@ -75,12 +79,14 @@ function AppShell({ state, dispatch, view, setView, activeLesson, setActiveLesso
   // outgoing node's exit finishes — that ordering is inherent to mode="wait"
   // and is accepted here (it is the accepted reading of 10.6, per task
   // guidance: focus must not additionally wait for the incoming element's
-  // own enter animation to finish playing on top of that). This effect fires
-  // on the React commit that mounts the new node, before its motion enter
-  // transition has completed, so it does not wait on that transition.
-  useEffect(() => {
-    focusEntryPoint(viewContainerRef.current)
-  }, [view])
+  // own enter animation to finish playing on top of that). A callback ref
+  // (rather than a `[view]`-keyed effect) is used because AnimatePresence
+  // controls the incoming node's actual DOM mount timing itself; an effect
+  // keyed on `view` fires on the state-change commit, which precedes that
+  // mount and reads a stale or null container.
+  const focusOnViewMount = useCallback((node: HTMLDivElement | null) => {
+    if (node) focusEntryPoint(node)
+  }, [])
 
   const openPurchaseLesson = () => {
     dispatch({ type: 'log_event', event: { type: 'fake_purchase_started', amount: 0 } })
@@ -112,37 +118,43 @@ function AppShell({ state, dispatch, view, setView, activeLesson, setActiveLesso
 
   return (
     <main className={`app-shell theme-${state.settings.theme} ${state.settings.highContrast ? 'high-contrast' : ''} motion-${state.settings.motion} intensity-${state.settings.intensity}`}>
-      <section className="phone-frame">
+      <div className="console">
         <a className="skip-link" href="#main-content">Skip to content</a>
         <header className="topbar">
-          <button className="brand" onClick={() => setView('home')} aria-label="G.A.M.E. home">G.A.M.E.</button>
-          <div className="wallet-pill" aria-label={`${state.wallet} fictional credits`}>◈ {state.wallet.toLocaleString()}</div>
-          <a className="quick-exit" href="about:blank">Quick exit</a>
+          <button className="brand" onClick={() => setView('home')} aria-label="G.A.M.E. home">
+            <span className="brand-mark"><BrandIcon /></span>
+            G.A.M.E.
+          </button>
+          <div className="topbar-actions">
+            <div className="wallet-pill" aria-label={`${state.wallet} fictional credits`}><WalletIcon /><span className="wallet-label">{state.wallet.toLocaleString()}</span></div>
+            <a className="quick-exit" href="about:blank"><ExitIcon />Quick exit</a>
+          </div>
         </header>
-        <div className="safety-strip">No real money • Local-only prototype • Content provisional</div>
-        <div id="main-content">
-          <AnimatePresence mode="wait" custom={direction}>
-            <motion.div
-              key={view}
-              ref={viewContainerRef}
-              custom={direction}
-              variants={reduced ? fastFade : viewTransition}
-              initial="initial"
-              animate="animate"
-              exit="exit"
-            >
-              {viewNode}
-            </motion.div>
-          </AnimatePresence>
+        <div className="console-body">
+          <div id="main-content">
+            <AnimatePresence mode="wait" custom={direction}>
+              <motion.div
+                key={view}
+                ref={focusOnViewMount}
+                custom={direction}
+                variants={reduced ? fastFade : viewTransition}
+                initial="initial"
+                animate="animate"
+                exit="exit"
+              >
+                {viewNode}
+              </motion.div>
+            </AnimatePresence>
+          </div>
+          <nav className="nav-rail" aria-label="Primary">
+            <button className={view === 'home' ? 'active' : ''} onClick={() => setView('home')}><HomeIcon />Home</button>
+            <button className={view === 'alternatives' ? 'active' : ''} onClick={() => setView('alternatives')}><CalmIcon />Calm</button>
+            <button className={view === 'progress' ? 'active' : ''} onClick={() => setView('progress')}><ProgressIcon />Progress</button>
+            <button className={view === 'report' ? 'active' : ''} onClick={() => setView('report')}><ReportIcon />Report</button>
+            <button className={view === 'settings' ? 'active' : ''} onClick={() => setView('settings')}><SettingsIcon />Settings</button>
+          </nav>
         </div>
-        <nav className="bottom-nav" aria-label="Primary">
-          <button className={view === 'home' ? 'active' : ''} onClick={() => setView('home')}>Home</button>
-          <button className={view === 'alternatives' ? 'active' : ''} onClick={() => setView('alternatives')}>Calm</button>
-          <button className={view === 'progress' ? 'active' : ''} onClick={() => setView('progress')}>Progress</button>
-          <button className={view === 'report' ? 'active' : ''} onClick={() => setView('report')}>Report</button>
-          <button className={view === 'settings' ? 'active' : ''} onClick={() => setView('settings')}>Settings</button>
-        </nav>
-      </section>
+      </div>
       <AnimatePresence>
         {activeLesson && <InterventionModal key="intervention-modal" lessonId={activeLesson} onClose={() => setActiveLesson(null)} onAlternative={() => { setActiveLesson(null); setView('alternatives') }} onComplete={(reflection, share) => {
           if (reflection) dispatch({ type: 'add_reflection', lessonId: activeLesson, text: reflection, shareInReport: share })
@@ -154,27 +166,27 @@ function AppShell({ state, dispatch, view, setView, activeLesson, setActiveLesso
   )
 }
 
-const gameCards: { id: GameId; name: string; icon: string }[] = [
-  { id: 'roulette', name: 'Roulette', icon: '◉' }, { id: 'color', name: 'Color Game', icon: '◆' }, { id: 'blackjack', name: 'Blackjack', icon: '21' }, { id: 'poker', name: 'Poker', icon: '♠' }, { id: 'tongits', name: 'Tong-its', icon: '♣' },
+const gameCards: { id: GameId; name: string; icon: ComponentType }[] = [
+  { id: 'roulette', name: 'Roulette', icon: RouletteIcon }, { id: 'color', name: 'Color Game', icon: DiceIcon }, { id: 'blackjack', name: 'Blackjack', icon: CardsIcon }, { id: 'poker', name: 'Poker', icon: CardsIcon }, { id: 'tongits', name: 'Tong-its', icon: CardsIcon },
 ]
 
 function Dashboard({ points, onWallet, onGame, onNavigate }: { points: number; onWallet(): void; onGame(game: GameId): void; onNavigate(view: View): void }) {
   const minutes = casinoMinutesForMastery(points)
   const graduated = minutes === 0
   return <section aria-labelledby="dashboard-title">
-    <p className="eyebrow">Recovery learning dashboard</p><h1 id="dashboard-title">Notice the design. Choose the next step.</h1>
+    <h1 id="dashboard-title">Notice the design. Choose the next step.</h1>
     <button className="mastery-card mastery-button" onClick={() => onNavigate('progress')}><div><strong>{points}%</strong><span>Awareness mastery</span></div><progress max="100" value={points}>{points}%</progress><small>{graduated ? 'Casino simulations retired — graduation reached' : `Casino allowance: ${minutes} minutes per learning session`}</small></button>
     <div className="notice warning"><strong>Remember:</strong> playing never earns mastery. Only reflection, learning checks, and healthier alternatives do.</div>
-    <div className="recovery-shortcuts"><button onClick={() => onNavigate('alternatives')}>◎ Calm an urge</button><button onClick={() => onNavigate('report')}>▤ Counselor report</button></div>
+    <div className="recovery-shortcuts"><button className="icon-btn" onClick={() => onNavigate('alternatives')}><CalmIcon />Calm an urge</button><button className="icon-btn" onClick={() => onNavigate('report')}><ReportIcon />Counselor report</button></div>
     <h2>Learning simulations</h2>
     {graduated && <div className="graduated"><strong>Graduated:</strong> game simulations are no longer available. Your alternatives and report remain accessible.</div>}
-    <div className="game-grid" aria-label="Learning simulations">{gameCards.map((game) => <article className="game-card" key={game.id}><span aria-hidden="true">{game.icon}</span><h3>{game.name}</h3><p>Random free play + guided scenario</p><button onClick={() => onGame(game.id)} disabled={graduated}>{graduated ? 'Retired' : 'Open lesson'}</button></article>)}</div>
-    <button className="wallet-banner" onClick={onWallet}><span>Fictional wallet</span><strong>Review simulated credits →</strong></button>
+    <div className="game-grid" aria-label="Learning simulations">{gameCards.map((game) => { const Icon = game.icon; return <article className="game-card" key={game.id}><span className="icon-tile" aria-hidden="true"><Icon /></span><h3>{game.name}</h3><p>Random free play + guided scenario</p><button className="primary" onClick={() => onGame(game.id)} disabled={graduated}>{graduated ? 'Retired' : 'Open lesson'}</button></article> })}</div>
+    <button className="wallet-banner" onClick={onWallet}><span className="icon-btn"><WalletIcon />Fictional wallet</span><strong>Review simulated credits →</strong></button>
   </section>
 }
 
 function Settings({ state, onChange, onReset }: { state: SettingsType; onChange(key: keyof SettingsType, value: SettingsType[keyof SettingsType]): void; onReset(): void }) {
-  return <section aria-labelledby="settings-title"><p className="eyebrow">Accessibility and privacy</p><h1 id="settings-title">Your controls</h1>
+  return <section aria-labelledby="settings-title"><h1 id="settings-title">Your controls</h1>
     <label className="setting-row"><span>Sound effects</span><input type="checkbox" checked={state.sound} onChange={(event) => onChange('sound', event.target.checked)} /></label>
     <label className="setting-row"><span>Reduced motion</span><input type="checkbox" checked={state.motion === 'reduced'} onChange={(event) => onChange('motion', event.target.checked ? 'reduced' : 'full')} /></label>
     <label className="setting-row"><span>Calm visual intensity</span><input type="checkbox" checked={state.intensity === 'calm'} onChange={(event) => onChange('intensity', event.target.checked ? 'calm' : 'authentic')} /></label>

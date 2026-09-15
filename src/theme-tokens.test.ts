@@ -153,8 +153,7 @@ describe('light-theme WCAG 2.x contrast (executable, from parsed tokens)', () =>
     { name: 'body text on frame', fg: '--color-text', bg: '--color-frame-bg' },
     { name: 'muted text on frame', fg: '--color-text-muted', bg: '--color-frame-bg' },
     { name: 'body text on app background', fg: '--color-text', bg: '--color-bg' },
-    // Safety / notice / warning chrome.
-    { name: 'safety-strip text', fg: '--color-safety-text', bg: '--color-safety-bg' },
+    // Notice / warning chrome.
     { name: 'notice text', fg: '--color-notice-text', bg: '--color-notice-bg' },
     { name: 'warning notice text (inherits .notice color)', fg: '--color-notice-text', bg: '--color-notice-warn-bg' },
     // Intervention modal input.

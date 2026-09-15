@@ -29,6 +29,7 @@ export function MotionPreferenceProvider({ settingsMotion, children }: MotionPre
  * `MotionPreferenceProvider` rather than silently returning a default/partial value
  * (Requirement 3.8).
  */
+// eslint-disable-next-line react-refresh/only-export-components -- hook must live with its provider/context
 export function useMotionPref(): MotionPreference {
   const pref = useContext(MotionPreferenceContext)
 

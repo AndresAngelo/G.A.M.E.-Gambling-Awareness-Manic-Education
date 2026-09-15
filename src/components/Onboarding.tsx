@@ -17,8 +17,7 @@ export function Onboarding({ onComplete }: Props) {
 
   return (
     <main className="app-shell">
-      <section className="phone-frame onboarding" aria-labelledby="welcome-title">
-        <p className="eyebrow">Safety before simulation</p>
+      <section className="onboarding" aria-labelledby="welcome-title">
         <h1 id="welcome-title">Welcome to G.A.M.E.</h1>
         <p className="lead">This educational prototype helps you recognize gambling manipulation—not practice gambling for profit.</p>
         <div className="notice warning"><strong>Content notice:</strong> Casino visuals and game mechanics can trigger urges. You can exit, mute, or reduce intensity at any time.</div>

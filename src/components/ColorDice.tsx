@@ -1,7 +1,13 @@
 import { useEffect, useRef } from 'react'
-import { motion, type Transition } from 'motion/react'
+import { motion, type TargetAndTransition, type Transition } from 'motion/react'
 import { colorFaces, type ColorId } from '../domain/games/colorGame'
 import { MOTION_TOKENS } from '../motion/tokens'
+
+// Local typing for the `--die-step` CSS custom property so it can be passed as a plain
+// literal key instead of a computed-key-with-cast workaround at each use site.
+interface DieStyle extends React.CSSProperties {
+  '--die-step': number
+}
 
 export interface ColorDiceProps {
   spinToken: number // increments each time a new roll should play, even if targets repeat prior values
@@ -58,7 +64,6 @@ export function ColorDice({ spinToken, targets, reduced, onSettled }: ColorDiceP
   useEffect(() => {
     settledCountRef.current = 0
     // Reacts to spinToken changing (a new roll starting), not to targets directly.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [spinToken])
 
   const hasValidTargets =
@@ -97,8 +102,8 @@ export function ColorDice({ spinToken, targets, reduced, onSettled }: ColorDiceP
           <motion.div
             key={index}
             className="color-die-tumble"
-            style={{ ['--die-step' as string]: totalSteps } as React.CSSProperties}
-            animate={{ ['--die-step' as string]: totalSteps }}
+            style={{ '--die-step': totalSteps } as DieStyle}
+            animate={{ '--die-step': totalSteps } as TargetAndTransition}
             transition={{
               duration: (reduced ? token.reducedDuration : token.duration) / 1000,
               // MotionEase is intentionally engine-agnostic in tokens.ts; asserted here at the
